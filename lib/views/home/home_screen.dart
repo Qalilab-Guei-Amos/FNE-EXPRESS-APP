@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../fne_result/fne_web_view_screen.dart';
 import '../../controllers/history_controller.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/responsive.dart';
 import '../acquisition/acquisition_screen.dart';
 import '../history/history_screen.dart';
-import '../fne_result/fne_result_screen.dart';
 import '../../models/fne_record.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -21,6 +21,7 @@ class HomeScreen extends StatelessWidget {
       backgroundColor: AppTheme.background,
       body: SafeArea(
         child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
           slivers: [
             // ── AppBar ──────────────────────────────────────────
             SliverAppBar(
@@ -137,8 +138,7 @@ class HomeScreen extends StatelessWidget {
                     delegate: SliverChildBuilderDelegate(
                       (ctx, i) => _FneCard(
                         record: records[i],
-                        onTap: () => Get.to(
-                            () => FneResultScreen(record: records[i])),
+                        onTap: () => _openRecord(records[i]),
                       ),
                       childCount: records.length,
                     ),
@@ -161,8 +161,7 @@ class HomeScreen extends StatelessWidget {
                     ),
                     child: _FneCard(
                       record: records[i],
-                      onTap: () =>
-                          Get.to(() => FneResultScreen(record: records[i])),
+                      onTap: () => _openRecord(records[i]),
                     ),
                   ),
                   childCount: records.length,
@@ -197,6 +196,16 @@ class HomeScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+// ── Ouverture de la facture certifiée ────────────────────────────────────────
+void _openRecord(FneRecord record) {
+  if (record.qrCode != null && record.qrCode!.isNotEmpty) {
+    Get.to(() => FneWebViewScreen(url: record.qrCode!));
+  } else {
+    Get.snackbar('Indisponible', 'Aucun lien de vérification pour cette FNE',
+        snackPosition: SnackPosition.BOTTOM);
   }
 }
 

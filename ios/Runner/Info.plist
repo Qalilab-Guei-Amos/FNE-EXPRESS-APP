@@ -2,6 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSCameraUsageDescription</key>
+	<string>FNE Express utilise l'appareil photo pour photographier vos factures fournisseurs.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>FNE Express accède à votre galerie pour importer vos factures fournisseurs.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>FNE Express peut sauvegarder des documents dans votre galerie.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>FNE Express n'utilise pas le microphone.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

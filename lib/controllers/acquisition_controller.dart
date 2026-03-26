@@ -79,6 +79,12 @@ class AcquisitionController extends GetxController {
     }
   }
 
+  void loadSharedFile(String path, String mimeType) {
+    isLoading.value = false;
+    selectedFile.value = File(path);
+    selectedMimeType.value = mimeType;
+  }
+
   void clearFile() {
     selectedFile.value = null;
     selectedMimeType.value = '';

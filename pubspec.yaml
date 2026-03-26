@@ -15,7 +15,6 @@ dependencies:
   get: ^4.7.3
   dio: ^5.9.2
   toastification: ^3.0.3
-  flutter_pdfview: ^1.4.4
   file_picker: ^10.3.10
   flutter_screenutil: ^5.9.3
   flutter_localizations:
@@ -31,6 +30,10 @@ dependencies:
   permission_handler: ^11.3.1
   googleai_dart: ^3.6.0
   flutter_dotenv: ^6.0.0
+  pdfx: ^2.8.0
+  webview_flutter: ^4.13.1
+  flutter_sharing_intent: ^1.1.1
+  flutter_native_splash: ^2.4.7
 
 dev_dependencies:
   flutter_test:

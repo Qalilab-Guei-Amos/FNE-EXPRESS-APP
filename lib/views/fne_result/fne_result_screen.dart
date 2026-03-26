@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
+import 'fne_web_view_screen.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/responsive.dart';
@@ -29,6 +30,7 @@ class FneResultScreen extends StatelessWidget {
         ],
       ),
       body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
         padding: EdgeInsets.symmetric(
           horizontal: R.hPad(context),
           vertical: R.vPad(context),
@@ -42,15 +44,18 @@ class FneResultScreen extends StatelessWidget {
   }
 
   void _share() {
-    final text = [
-      'FNE Express - Facture Normalisée',
-      'Client: ${record.clientName}',
-      'Numéro FNE: ${record.fneNumber ?? 'N/A'}',
-      'Date: ${AppFormatters.date(record.createdAt)}',
-      'Total TTC: ${AppFormatters.currency(record.totalTTC)}',
-      if (record.qrCode != null) 'Vérification: ${record.qrCode}',
-    ].join('\n');
-    Share.share(text, subject: 'FNE - ${record.clientName}');
+    final lines = [
+      'FNE Express — Facture Normalisée Électronique',
+      'Client : ${record.clientName}',
+      'Numéro FNE : ${record.fneNumber ?? 'N/A'}',
+      'Date : ${AppFormatters.date(record.createdAt)}',
+      'Total TTC : ${AppFormatters.currency(record.totalTTC)}',
+      if (record.qrCode != null) ...[
+        '',
+        'Vérifier la facture : ${record.qrCode}',
+      ],
+    ];
+    Share.share(lines.join('\n'), subject: 'FNE — ${record.clientName}');
   }
 }
 
@@ -173,49 +178,76 @@ class _SuccessBanner extends StatelessWidget {
   }
 }
 
-// ── Carte QR Code ─────────────────────────────────────────────────────────────
+// ── Carte vérification FNE ────────────────────────────────────────────────────
 class _QrCard extends StatelessWidget {
   final FneRecord record;
   const _QrCard({required this.record});
 
+  void _openVerification() {
+    Get.to(() => FneWebViewScreen(url: record.qrCode!));
+  }
+
   @override
   Widget build(BuildContext context) {
-    final qrSize = R.icon(context, 140);
+    final isTablet = R.isTablet(context);
     return Card(
       shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(R.radius(context))),
       child: Padding(
-        padding: EdgeInsets.all(R.isTablet(context) ? 24 : 16),
+        padding: EdgeInsets.all(isTablet ? 24 : 16),
         child: Column(
           children: [
-            Text(
-              'Code de vérification',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: R.fs(context, 15),
-                color: AppTheme.textDark,
-              ),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.verified_outlined,
+                      color: Colors.green.shade700,
+                      size: R.icon(context, 24)),
+                ),
+                SizedBox(width: isTablet ? 16 : 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Facture certifiée FNE',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: R.fs(context, 14),
+                          color: AppTheme.textDark,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Vérifiable sur la plateforme FNE',
+                        style: TextStyle(
+                            fontSize: R.fs(context, 12),
+                            color: AppTheme.textGrey),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
             SizedBox(height: R.gap(context)),
-            Container(
-              width: qrSize,
-              height: qrSize,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.divider),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _openVerification,
+                icon: Icon(Icons.open_in_browser, size: R.icon(context, 18)),
+                label: Text('Voir la facture certifiée',
+                    style: TextStyle(fontSize: R.fs(context, 14))),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.green.shade700,
+                  side: BorderSide(color: Colors.green.shade400),
+                  padding: EdgeInsets.symmetric(vertical: isTablet ? 14 : 12),
+                ),
               ),
-              child: Center(
-                child: Icon(Icons.qr_code_2,
-                    size: qrSize * 0.7, color: AppTheme.textDark),
-              ),
-            ),
-            SizedBox(height: R.gap(context) * 0.6),
-            Text(
-              record.qrCode!,
-              style: TextStyle(
-                  fontSize: R.fs(context, 11), color: AppTheme.textGrey),
-              textAlign: TextAlign.center,
             ),
           ],
         ),

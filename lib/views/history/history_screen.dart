@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../fne_result/fne_web_view_screen.dart';
 import '../../controllers/history_controller.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/responsive.dart';
-import '../fne_result/fne_result_screen.dart';
 
 class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});
@@ -57,6 +57,7 @@ class _TabletGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GridView.builder(
+      physics: const BouncingScrollPhysics(),
       padding: EdgeInsets.all(R.hPad(context)),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: R.cols(context),
@@ -69,7 +70,7 @@ class _TabletGrid extends StatelessWidget {
         final record = ctrl.records[index];
         return _HistoryCard(
           record: record,
-          onTap: () => Get.to(() => FneResultScreen(record: record)),
+          onTap: () => _openRecord(record),
           onDelete: () => _confirmDelete(context, ctrl, record.id),
         );
       },
@@ -85,6 +86,7 @@ class _MobileList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
+      physics: const BouncingScrollPhysics(),
       padding: EdgeInsets.all(R.hPad(context)),
       itemCount: ctrl.records.length,
       separatorBuilder: (_, __) => SizedBox(height: R.gap(context) * 0.6),
@@ -107,7 +109,7 @@ class _MobileList extends StatelessWidget {
           onDismissed: (_) => ctrl.deleteRecord(record.id),
           child: _HistoryCard(
             record: record,
-            onTap: () => Get.to(() => FneResultScreen(record: record)),
+            onTap: () => _openRecord(record),
             onDelete: null,
           ),
         );
@@ -214,6 +216,16 @@ class _HistoryCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+// ── Ouverture de la facture certifiée ────────────────────────────────────────
+void _openRecord(dynamic record) {
+  if (record.qrCode != null && record.qrCode!.isNotEmpty) {
+    Get.to(() => FneWebViewScreen(url: record.qrCode!));
+  } else {
+    Get.snackbar('Indisponible', 'Aucun lien de vérification pour cette FNE',
+        snackPosition: SnackPosition.BOTTOM);
   }
 }
 

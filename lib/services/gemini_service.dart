@@ -26,31 +26,97 @@ class GeminiService extends GetxService {
 
   String get _model => dotenv.env['GEMINI_MODEL'] ?? 'gemini-1.5-flash';
 
-  static const String _prompt =
-      'Tu es un assistant d\'extraction de données de factures. '
-      'Analyse cette facture et extrait toutes les informations.\n'
-      'Réponds UNIQUEMENT avec un objet JSON valide, sans markdown, '
-      'sans explication, avec exactement cette structure:\n'
-      '{\n'
-      '  "clientName": "nom du magasin client (ex: Auchan, Prosuma, Casino, etc.) ou null si non trouvé",\n'
-      '  "date": "date au format YYYY-MM-DD ou null si non trouvée",\n'
-      '  "invoiceNumber": "numéro de la facture ou null",\n'
-      '  "tvaRate": 0.18,\n'
-      '  "items": [\n'
-      '    {\n'
-      '      "designation": "désignation du produit",\n'
-      '      "quantity": 1,\n'
-      '      "unitPrice": 0,\n'
-      '      "tvaRate": 0.18,\n'
-      '      "discount": 0\n'
-      '    }\n'
-      '  ]\n'
-      '}\n'
-      'Notes: TVA standard CI = 18% (0.18). Prix en FCFA. '
-      'discount = pourcentage décimal. Extrais TOUS les articles.';
+  static const String _prompt = '''
+Tu es un expert en extraction de données de factures commerciales en Côte d'Ivoire.
+Analyse attentivement cette facture (manuscrite ou imprimée) et extrais TOUTES les informations ci-dessous.
+
+══════════════════════════════════════════════
+RÈGLES SUR LES PRIX
+══════════════════════════════════════════════
+1. Identifie le type de colonne prix : "PU TTC" / "Prix TTC" → priceType = "TTC"
+                                        "PU HT"  / "Prix HT"  → priceType = "HT"
+2. unitPrice doit TOUJOURS être en HT :
+   - Si colonne TTC  → unitPrice = valeur ÷ (1 + tvaRate)
+   - Si colonne HT   → unitPrice = valeur telle quelle
+3. taxCode par article selon les indications sur la facture :
+   - "TVA"  : taux 18% (normal) — par défaut si non précisé
+   - "TVAB" : taux 9% (réduit)
+   - "TVAC" : taux 0% (exonéré convention)
+   - "TVAD" : taux 0% (exonéré légal — TEE, RME)
+
+══════════════════════════════════════════════
+RÈGLES SUR LE CLIENT
+══════════════════════════════════════════════
+4. clientName   : nom de l'entreprise ou de la personne cliente (champ "Client", "Acheteur", "Vendu à", etc.)
+5. clientPhone  : numéro de téléphone du client (cherche "Tél", "Tel", "Mobile", "Contact")
+6. clientEmail  : adresse e-mail du client (cherche "@")
+7. clientNcc    : NCC / numéro fiscal du client (cherche "NCC", "CC N°", "CC:", "N° fiscal", "NIF", "Identifiant fiscal")
+
+══════════════════════════════════════════════
+RÈGLES SUR LE TYPE DE FACTURATION (template)
+══════════════════════════════════════════════
+8. Détermine le template selon le contexte :
+   - "B2B" : vente à une entreprise (NCC présent, ou nom d'entreprise évident) — par défaut
+   - "B2C" : vente à un particulier (nom de personne physique, pas de NCC)
+   - "B2G" : vente à un organisme gouvernemental / public
+   - "B2F" : vente internationale (devise étrangère présente ou client étranger)
+
+10. Si template = "B2F" ou devise étrangère détectée :
+   - foreignCurrency : code devise ("USD", "EUR", "JPY", "CAD", "GBP", "AUD", "CNH", "CHF", "HKD", "NZD"). Vide si FCFA.
+   - foreignCurrencyRate : taux de change (ex: 655 pour EUR/XOF). 0 si non précisé ou FCFA.
+
+══════════════════════════════════════════════
+RÈGLES SUR LE MODE DE PAIEMENT (paymentMethod)
+══════════════════════════════════════════════
+9. Déduis le mode de paiement si mentionné sur la facture :
+   - "mobile-money" : Mobile Money, MoMo, Orange Money, Wave, MTN Money
+   - "cash"         : Espèces, Cash, Comptant
+   - "card"         : Carte bancaire, CB, Visa, Mastercard
+   - "check"        : Chèque
+   - "transfer"     : Virement, Virement bancaire
+   - "deferred"     : À terme, Crédit, Différé
+   Par défaut → "mobile-money"
+
+══════════════════════════════════════════════
+FORMAT DE RÉPONSE
+══════════════════════════════════════════════
+Réponds UNIQUEMENT avec un objet JSON valide, sans markdown, sans explication :
+{
+  "clientName": "nom du client ou null",
+  "clientPhone": "numéro de téléphone ou null",
+  "clientEmail": "email ou null",
+  "clientNcc": "NCC/NIF du client ou null",
+  "date": "YYYY-MM-DD ou null",
+  "invoiceNumber": "numéro de facture ou null",
+  "priceType": "TTC ou HT",
+  "tvaRate": 0.18,
+  "totalTTC": 0,
+  "template": "B2B ou B2C ou B2G ou B2F",
+  "paymentMethod": "mobile-money ou cash ou card ou check ou transfer ou deferred",
+  "foreignCurrency": "code devise ou chaine vide si FCFA",
+  "foreignCurrencyRate": 0,
+  "items": [
+    {
+      "designation": "désignation exacte du produit",
+      "quantity": 1,
+      "unitPrice": 0,
+      "taxCode": "TVA ou TVAB ou TVAC ou TVAD"
+    }
+  ]
+}
+
+RAPPELS CRITIQUES :
+- unitPrice = TOUJOURS en HT, converti si la facture affiche des prix TTC
+- Extrais ABSOLUMENT TOUS les articles du tableau, sans en omettre aucun
+- Les montants sont en FCFA sauf si devise étrangère détectée
+- clientPhone : extrais uniquement les chiffres ou le format local (ex: "0709080765")
+- taxCode par défaut = "TVA" si non précisé sur la facture
+''';
 
   Future<ExtractedInvoice> extractFromBytes(
       Uint8List bytes, String mimeType) async {
+    print('[Extraction] Démarrage — mimeType: $mimeType, taille: ${bytes.length} octets');
+
     final request = GenerateContentRequest(
       contents: [
         Content.user([
@@ -62,9 +128,12 @@ class GeminiService extends GetxService {
         temperature: 0.1,
         topK: 1,
         topP: 0.8,
-        maxOutputTokens: 2048,
+        maxOutputTokens: 8192,
+        responseMimeType: 'application/json',
       ),
     );
+
+    print('[Extraction] Envoi de la requête au modèle: $_model');
 
     final response = await _client.models.generateContent(
       model: _model,
@@ -72,12 +141,37 @@ class GeminiService extends GetxService {
     );
 
     final text = response.text ?? '';
+    print('[Extraction] Réponse brute reçue (${text.length} chars):\n$text');
+
     final cleaned = text
         .replaceAll('```json', '')
         .replaceAll('```', '')
         .trim();
+    print('[Extraction] JSON nettoyé:\n$cleaned');
 
-    final jsonData = jsonDecode(cleaned) as Map<String, dynamic>;
-    return ExtractedInvoice.fromJson(jsonData);
+    if (cleaned.isEmpty) {
+      throw Exception('Réponse vide du modèle IA.');
+    }
+
+    Map<String, dynamic> jsonData;
+    try {
+      jsonData = jsonDecode(cleaned) as Map<String, dynamic>;
+    } catch (e) {
+      print('[Extraction] Erreur de parsing JSON: $e\nTexte reçu:\n$cleaned');
+      throw Exception('Réponse IA invalide (JSON malformé). Veuillez réessayer.');
+    }
+    print('[Extraction] JSON parsé: $jsonData');
+
+    final invoice = ExtractedInvoice.fromJson(jsonData);
+    print('[Extraction] Facture construite — client: ${invoice.clientName}, '
+        '${invoice.items.length} article(s), totalTTC: ${invoice.totalTTC}');
+    for (int i = 0; i < invoice.items.length; i++) {
+      final item = invoice.items[i];
+      print('[Extraction]   Article $i: ${item.designation} '
+          '× ${item.quantity} × ${item.unitPrice} HT '
+          '= ${item.amountTTC} TTC');
+    }
+
+    return invoice;
   }
 }

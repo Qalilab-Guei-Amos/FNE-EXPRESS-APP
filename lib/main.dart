@@ -11,7 +11,8 @@ import 'core/theme/app_theme.dart';
 import 'services/storage_service.dart';
 import 'services/gemini_service.dart';
 import 'services/fne_api_service.dart';
-import 'views/home/home_screen.dart';
+import 'services/share_intent_service.dart';
+import 'views/welcome/welcome_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,12 +27,13 @@ void main() async {
   await Get.putAsync<StorageService>(() => StorageService().init());
   Get.put<GeminiService>(GeminiService());
   Get.put<FneApiService>(FneApiService());
+  Get.put<ShareIntentService>(ShareIntentService());
 
   await initializeDateFormatting('fr_FR', null);
 
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
-  );
+  // SystemChrome.setSystemUIOverlayStyle(
+  //   const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
+  // );
 
   runApp(const FneExpressApp());
 }
@@ -59,7 +61,7 @@ class FneExpressApp extends StatelessWidget {
           ],
           supportedLocales: const [Locale('fr', 'FR')],
           theme: AppTheme.lightTheme,
-          home: const HomeScreen(),
+          home: const WelcomeScreen(),
         ),
       ),
     );

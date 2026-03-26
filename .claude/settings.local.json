@@ -4,7 +4,10 @@
       "Bash(flutter analyze:*)",
       "Bash(flutter pub:*)",
       "Bash(grep -r \"Part\\\\|InlinePart\\\\|BlobPart\\\\|DataPart\\\\|inline\\\\|blob\\\\|image\\\\|mimeType\" /c/Users/LENOVO/AppData/Local/Pub/Cache/hosted/pub.dev/googleai_dart-3.6.0/lib/src/ --include=*.dart -l)",
-      "Bash(grep -r \"Blob\\\\|InlineData\\\\|class Part\\\\|class.*Part\" /c/Users/LENOVO/AppData/Local/Pub/Cache/hosted/pub.dev/googleai_dart-3.6.0/lib/src/models/ --include=*.dart -l)"
+      "Bash(grep -r \"Blob\\\\|InlineData\\\\|class Part\\\\|class.*Part\" /c/Users/LENOVO/AppData/Local/Pub/Cache/hosted/pub.dev/googleai_dart-3.6.0/lib/src/models/ --include=*.dart -l)",
+      "Bash(find /c/Users/LENOVO/AppData/Local/Pub -name *.dart -path *googleai*)",
+      "Bash(find /c/Users/LENOVO -name generation_config*)",
+      "Bash(xargs cat:*)"
     ]
   }
 }

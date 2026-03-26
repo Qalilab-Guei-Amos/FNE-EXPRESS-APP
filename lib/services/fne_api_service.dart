@@ -5,127 +5,159 @@ import '../models/extracted_invoice.dart';
 
 class FneApiResult {
   final bool success;
-  final String? draftId;
   final String? fneNumber;
   final String? qrCode;
-  final String? pdfUrl;
   final String? errorMessage;
 
   FneApiResult({
     required this.success,
-    this.draftId,
     this.fneNumber,
     this.qrCode,
-    this.pdfUrl,
     this.errorMessage,
   });
 }
+
+// Données vendeur fixes pour la v1
+const String kPointOfSale   = 'AMANI DIGITAL SERVICES';
+const String kEstablishment = 'AMANI DIGITAL SERVICES';
+const String kSellerName    = 'AMANI DIGITAL SERVICES';
 
 class FneApiService extends GetxService {
   late Dio _dio;
 
   String get _baseUrl =>
-      dotenv.env['FNE_API_BASE_URL'] ?? 'https://api.fne.dgi.gouv.ci/v1';
+      dotenv.env['FNE_API_BASE_URL'] ?? 'http://54.247.95.108/ws';
+
   String get _apiKey => dotenv.env['FNE_API_KEY'] ?? '';
-  String get _vendorNif => dotenv.env['FNE_VENDOR_NIF'] ?? '';
+
   bool get _isMockMode => _apiKey.isEmpty || _apiKey == 'YOUR_FNE_API_KEY';
 
   @override
   void onInit() {
     super.onInit();
-    _dio = Dio(BaseOptions(
-      baseUrl: _baseUrl,
-      connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 60),
-      headers: {
-        'Authorization': 'Bearer $_apiKey',
-        'Content-Type': 'application/json',
-      },
-    ));
+    _dio = Dio(
+      BaseOptions(
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 60),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ),
+    );
+    // Intercepteur : baseUrl et token lus dynamiquement depuis les settings
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          options.baseUrl = _baseUrl;
+          options.headers['Authorization'] = 'Bearer $_apiKey';
+          handler.next(options);
+        },
+      ),
+    );
   }
 
-  /// Étape 1 : Soumettre les données de la facture pour pré-validation
-  Future<FneApiResult> submitInvoiceStep1(ExtractedInvoice invoice) async {
+  /// Certification de la facture — POST /external/invoices/sign
+  Future<FneApiResult> signInvoice(ExtractedInvoice invoice) async {
     if (_isMockMode) {
-      await Future.delayed(const Duration(seconds: 1));
-      return FneApiResult(
-        success: true,
-        draftId: 'DRAFT_${DateTime.now().millisecondsSinceEpoch}',
-      );
+      print('[FneApi] Mode mock actif — simulation de la certification');
+      await Future.delayed(const Duration(seconds: 2));
+      final ts = DateTime.now().millisecondsSinceEpoch.toString();
+      final ref =
+          'FNE-CI-${DateTime.now().year}-${ts.substring(ts.length - 6)}';
+      final token = 'http://54.247.95.108/fr/verification/mock-$ref';
+      print('[FneApi] Mock réponse — reference: $ref, token: $token');
+      return FneApiResult(success: true, fneNumber: ref, qrCode: token);
     }
 
     try {
       final body = {
-        'fournisseur': {'nif': _vendorNif},
-        'client': {'nom': invoice.clientName ?? 'Client inconnu'},
-        'date_facture': invoice.date?.toIso8601String().split('T')[0] ??
-            DateTime.now().toIso8601String().split('T')[0],
-        'numero_facture_origine': invoice.invoiceNumber,
-        'lignes': invoice.items
-            .map((item) => {
-                  'designation': item.designation,
-                  'quantite': item.quantity,
-                  'prix_unitaire_ht': item.unitPrice,
-                  'taux_tva': item.tvaRate,
-                  'remise': item.discount,
-                })
+        'invoiceType': 'sale',
+        'paymentMethod': invoice.paymentMethod,
+        'template': invoice.template,
+        'isRne': invoice.isRne,
+        if (invoice.isRne && invoice.rne != null && invoice.rne!.isNotEmpty)
+          'rne': invoice.rne,
+        if (invoice.invoiceNumber != null && invoice.invoiceNumber!.isNotEmpty)
+          'invoiceNumber': invoice.invoiceNumber,
+        if (invoice.template == 'B2B' &&
+            invoice.clientNcc != null &&
+            invoice.clientNcc!.isNotEmpty)
+          'clientNcc': invoice.clientNcc,
+        if (invoice.clientName != null && invoice.clientName!.isNotEmpty)
+          'clientCompanyName': invoice.clientName,
+        if (invoice.clientPhone != null && invoice.clientPhone!.isNotEmpty)
+          'clientPhone': invoice.clientPhone,
+        if (invoice.clientEmail != null && invoice.clientEmail!.isNotEmpty)
+          'clientEmail': invoice.clientEmail,
+        'clientSellerName': kSellerName,
+        'pointOfSale': kPointOfSale,
+        'establishment': kEstablishment,
+        if (invoice.foreignCurrency.isNotEmpty) ...{
+          'foreignCurrency': invoice.foreignCurrency,
+          'foreignCurrencyRate': invoice.foreignCurrencyRate,
+        },
+        'items': invoice.items
+            .map(
+              (item) => {
+                'taxes': item.taxesCodes,
+                'customTaxes': [],
+                'reference': '',
+                'description': item.designation,
+                'quantity': item.quantity % 1 == 0
+                    ? item.quantity.toInt()
+                    : item.quantity,
+                'amount': item.unitPrice,
+                'discount': 0,
+                'measurementUnit': '',
+              },
+            )
             .toList(),
-        'total_ht': invoice.totalHT,
-        'total_tva': invoice.totalTVA,
-        'total_ttc': invoice.totalTTC,
+        'customTaxes': [],
+        'discount': 0,
       };
 
-      final response = await _dio.post('/factures', data: body);
-      return FneApiResult(
-        success: true,
-        draftId: response.data['id']?.toString(),
-      );
-    } on DioException catch (e) {
-      return FneApiResult(success: false, errorMessage: _extractError(e));
-    } catch (e) {
-      return FneApiResult(success: false, errorMessage: 'Erreur inattendue: $e');
-    }
-  }
+      print('[FneApi] Envoi de la requête de certification');
+      print('[FneApi] Body: $body');
 
-  /// Étape 2 : Confirmer le brouillon et générer la FNE officielle
-  Future<FneApiResult> confirmAndGenerateStep2(
-      String draftId, ExtractedInvoice invoice) async {
-    if (_isMockMode) {
-      await Future.delayed(const Duration(seconds: 2));
-      final ts = DateTime.now().millisecondsSinceEpoch.toString();
-      final fneNumber =
-          'FNE-CI-${DateTime.now().year}-${ts.substring(ts.length - 6)}';
-      return FneApiResult(
-        success: true,
-        fneNumber: fneNumber,
-        qrCode: 'https://fne.dgi.gouv.ci/verify/$fneNumber',
-        pdfUrl: null,
-      );
-    }
+      final response = await _dio.post('/external/invoices/sign', data: body);
 
-    try {
-      final response = await _dio.post(
-        '/factures/$draftId/valider',
-        data: {'confirme': true},
+      print(
+        '[FneApi] Réponse reçue (${response.statusCode}): ${response.data}',
       );
-      return FneApiResult(
-        success: true,
-        fneNumber: response.data['numero_fne']?.toString(),
-        qrCode: response.data['qr_code']?.toString(),
-        pdfUrl: response.data['pdf_url']?.toString(),
-      );
+
+      final ref = response.data['reference']?.toString();
+      final token = response.data['token']?.toString();
+
+      return FneApiResult(success: true, fneNumber: ref, qrCode: token);
     } on DioException catch (e) {
-      return FneApiResult(success: false, errorMessage: _extractError(e));
+      final msg = _extractError(e);
+      print('[FneApi] Erreur DioException: $msg');
+      return FneApiResult(success: false, errorMessage: msg);
     } catch (e) {
-      return FneApiResult(success: false, errorMessage: 'Erreur inattendue: $e');
+      print('[FneApi] Erreur inattendue: $e');
+      return FneApiResult(
+        success: false,
+        errorMessage: 'Erreur inattendue: $e',
+      );
     }
   }
 
   static String _extractError(DioException e) {
-    if (e.response?.data is Map) {
-      return e.response?.data['message']?.toString() ??
-          e.response?.data['error']?.toString() ??
-          'Erreur API (${e.response?.statusCode})';
+    final data = e.response?.data;
+    print(
+      '[FneApi] Réponse erreur complète (${e.response?.statusCode}): $data',
+    );
+    if (data is Map) {
+      final msg =
+          data['message']?.toString() ??
+          data['error']?.toString() ??
+          data['errors']?.toString();
+      if (msg != null) return '$msg (${e.response?.statusCode})';
+      return 'Erreur API (${e.response?.statusCode}): $data';
+    }
+    if (data is String && data.isNotEmpty) {
+      return 'Erreur API (${e.response?.statusCode}): $data';
     }
     return 'Erreur réseau: ${e.message}';
   }

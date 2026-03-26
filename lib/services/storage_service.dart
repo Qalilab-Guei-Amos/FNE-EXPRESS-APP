@@ -1,16 +1,36 @@
 import 'package:get/get.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import '../models/app_settings.dart';
 import '../models/fne_record.dart';
 
 class StorageService extends GetxService {
   static const String _fneBoxName = 'fne_records';
-  late Box<String> _fneBox;
+  static const String _settingsBoxName = 'settings';
+  static const String _settingsKey = 'config';
 
-  /// Initialise le service et ouvre la box Hive.
+  late Box<String> _fneBox;
+  late Box<String> _settingsBox;
+
+  /// Initialise le service et ouvre les boxes Hive.
   /// Appelé via [Get.putAsync] au démarrage de l'app.
   Future<StorageService> init() async {
     _fneBox = await Hive.openBox<String>(_fneBoxName);
+    _settingsBox = await Hive.openBox<String>(_settingsBoxName);
     return this;
+  }
+
+  AppSettings? getSettings() {
+    final json = _settingsBox.get(_settingsKey);
+    if (json == null) return null;
+    try {
+      return AppSettings.fromJsonString(json);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> saveSettings(AppSettings settings) async {
+    await _settingsBox.put(_settingsKey, settings.toJsonString());
   }
 
   Future<void> saveFne(FneRecord record) async {

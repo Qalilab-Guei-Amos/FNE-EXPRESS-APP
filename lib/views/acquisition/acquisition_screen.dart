@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pdfx/pdfx.dart';
 import 'package:get/get.dart';
 import '../../controllers/acquisition_controller.dart';
 import '../../controllers/validation_controller.dart';
@@ -41,6 +42,7 @@ class _ImportView extends StatelessWidget {
 
     return SafeArea(
       child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
         padding: EdgeInsets.symmetric(
           horizontal: R.hPad(context),
           vertical: R.vPad(context),
@@ -84,7 +86,7 @@ class _ImportView extends StatelessWidget {
                 ),
                 SizedBox(height: isTablet ? 48 : 40),
 
-                // Sur tablette : 2 colonnes pour les 3 boutons
+                // Sur tablette : 2 colonnes
                 if (isTablet) ...[
                   Row(
                     children: [
@@ -110,7 +112,6 @@ class _ImportView extends StatelessWidget {
                     ],
                   ),
                   SizedBox(height: R.gap(context)),
-                  // 3e bouton centré en pleine largeur
                   _OptionButton(
                     icon: Icons.picture_as_pdf,
                     label: 'Importer un PDF',
@@ -238,6 +239,47 @@ class _OptionButton extends StatelessWidget {
   }
 }
 
+// ── Prévisualisation PDF ──────────────────────────────────────────────────────
+class _PdfPreview extends StatefulWidget {
+  final String path;
+  const _PdfPreview({required this.path});
+
+  @override
+  State<_PdfPreview> createState() => _PdfPreviewState();
+}
+
+class _PdfPreviewState extends State<_PdfPreview> {
+  late final PdfControllerPinch _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = PdfControllerPinch(
+      document: PdfDocument.openFile(widget.path),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PdfViewPinch(
+      controller: _controller,
+      builders: PdfViewPinchBuilders<DefaultBuilderOptions>(
+        options: const DefaultBuilderOptions(),
+        documentLoaderBuilder: (_) =>
+            const Center(child: CircularProgressIndicator(color: AppTheme.primary)),
+        pageLoaderBuilder: (_) =>
+            const Center(child: CircularProgressIndicator(color: AppTheme.primary)),
+      ),
+    );
+  }
+}
+
 // ── Vue prévisualisation ──────────────────────────────────────────────────────
 class _PreviewView extends StatelessWidget {
   final AcquisitionController ctrl;
@@ -253,35 +295,7 @@ class _PreviewView extends StatelessWidget {
       children: [
         Expanded(
           child: isPdf
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.picture_as_pdf,
-                          size: R.icon(context, 100),
-                          color: const Color(0xFFB23535)),
-                      SizedBox(height: isTablet ? 20 : 14),
-                      Padding(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: R.hPad(context)),
-                        child: Text(
-                          file.path.split('/').last,
-                          style: TextStyle(
-                              color: AppTheme.textDark,
-                              fontSize: R.fs(context, 14)),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Fichier PDF prêt à être traité',
-                        style: TextStyle(
-                            color: AppTheme.textGrey,
-                            fontSize: R.fs(context, 13)),
-                      ),
-                    ],
-                  ),
-                )
+              ? _PdfPreview(path: file.path)
               : InteractiveViewer(
                   child: Image.file(file, fit: BoxFit.contain)),
         ),
@@ -331,7 +345,7 @@ class _PreviewView extends StatelessWidget {
                         },
                         icon: Icon(Icons.auto_awesome,
                             size: R.icon(context, 20)),
-                        label: Text('Analyser avec l\'IA',
+                        label: Text('Extraire les données',
                             style: TextStyle(fontSize: R.fs(context, 15))),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.accent,

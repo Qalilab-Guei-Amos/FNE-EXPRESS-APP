@@ -6,53 +6,86 @@ double toDoubleValue(dynamic val, {double defaultVal = 0.0}) {
   return double.tryParse(val.toString()) ?? defaultVal;
 }
 
+/// Codes TVA valides pour l'API FNE
+const Map<String, double> kTaxRates = {
+  'TVA': 0.18,   // TVA normal 18%
+  'TVAB': 0.09,  // TVA réduit 9%
+  'TVAC': 0.00,  // TVA exo. convention 0%
+  'TVAD': 0.00,  // TVA exo. légal 0% (TEE/RME)
+};
+
+const Map<String, String> kTaxLabels = {
+  'TVA':  'TVA — 18% (normal)',
+  'TVAB': 'TVAB — 9% (réduit)',
+  'TVAC': 'TVAC — 0% (exo. conv.)',
+  'TVAD': 'TVAD — 0% (exo. légal)',
+};
+
 class InvoiceItem {
   String designation;
   double quantity;
   double unitPrice;
-  double tvaRate;
-  double discount;
+  /// Code TVA explicite : 'TVA', 'TVAB', 'TVAC', 'TVAD'
+  String taxCode;
 
   InvoiceItem({
     required this.designation,
     required this.quantity,
     required this.unitPrice,
-    this.tvaRate = 0.18,
-    this.discount = 0.0,
+    this.taxCode = 'TVA',
   });
 
-  double get amountHT => quantity * unitPrice * (1 - discount);
+  double get tvaRate => kTaxRates[taxCode] ?? 0.18;
+
+  double get amountHT  => quantity * unitPrice;
   double get amountTVA => amountHT * tvaRate;
   double get amountTTC => amountHT + amountTVA;
+
+  /// Code TVA pour l'API FNE
+  List<String> get taxesCodes => [taxCode];
 
   Map<String, dynamic> toJson() => {
         'designation': designation,
         'quantity': quantity,
         'unitPrice': unitPrice,
-        'tvaRate': tvaRate,
-        'discount': discount,
+        'taxCode': taxCode,
+        'amountHT': amountHT,
+        'amountTVA': amountTVA,
+        'amountTTC': amountTTC,
       };
 
-  factory InvoiceItem.fromJson(Map<String, dynamic> json) => InvoiceItem(
-        designation: (json['designation'] ?? '').toString(),
-        quantity: toDoubleValue(json['quantity']),
-        unitPrice: toDoubleValue(json['unitPrice']),
-        tvaRate: toDoubleValue(json['tvaRate'], defaultVal: 0.18),
-        discount: toDoubleValue(json['discount']),
-      );
+  factory InvoiceItem.fromJson(Map<String, dynamic> json) {
+    // Nouveau format : taxCode string
+    String code = json['taxCode']?.toString() ?? '';
+    if (code.isEmpty || !kTaxRates.containsKey(code)) {
+      // Ancien format / extraction Gemini : dériver depuis tvaRate
+      final rate = toDoubleValue(json['tvaRate'], defaultVal: 0.18);
+      if (rate >= 0.18) {
+        code = 'TVA';
+      } else if (rate >= 0.09) {
+        code = 'TVAB';
+      } else {
+        code = 'TVAC';
+      }
+    }
+    return InvoiceItem(
+      designation: (json['designation'] ?? '').toString(),
+      quantity: toDoubleValue(json['quantity']),
+      unitPrice: toDoubleValue(json['unitPrice']),
+      taxCode: code,
+    );
+  }
 
   InvoiceItem copyWith({
     String? designation,
     double? quantity,
     double? unitPrice,
-    double? tvaRate,
-    double? discount,
+    String? taxCode,
   }) =>
       InvoiceItem(
         designation: designation ?? this.designation,
         quantity: quantity ?? this.quantity,
         unitPrice: unitPrice ?? this.unitPrice,
-        tvaRate: tvaRate ?? this.tvaRate,
-        discount: discount ?? this.discount,
+        taxCode: taxCode ?? this.taxCode,
       );
 }
