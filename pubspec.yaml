@@ -1,0 +1,44 @@
+name: fne_app
+description: "FNE Express - Générateur de Factures Normalisées Électroniques"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.3
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  get: ^4.7.3
+  dio: ^5.9.2
+  toastification: ^3.0.3
+  flutter_pdfview: ^1.4.4
+  file_picker: ^10.3.10
+  flutter_screenutil: ^5.9.3
+  flutter_localizations:
+    sdk: flutter
+
+  # Added dependencies
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  image_picker: ^1.1.2
+  share_plus: ^10.0.0
+  intl: 0.20.2
+  path_provider: ^2.1.4
+  permission_handler: ^11.3.1
+  googleai_dart: ^3.6.0
+  flutter_dotenv: ^6.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - .env
