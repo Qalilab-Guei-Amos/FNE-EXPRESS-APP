@@ -12,6 +12,7 @@ import '../../services/storage_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/responsive.dart';
 import 'fne_pdf_view_screen.dart';
+import '../home/home_screen.dart';
 
 class FneWebViewScreen extends StatefulWidget {
   final String url;
@@ -236,35 +237,45 @@ class _FneWebViewScreenState extends State<FneWebViewScreen> {
     );
   }
 
+  void _goHome() => Get.offAll(() => const HomeScreen());
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text(
-          widget.title,
-          style: TextStyle(fontSize: R.fs(context, 16)),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh, size: R.icon(context, 22)),
-            onPressed: () => _controller.reload(),
-            tooltip: 'Actualiser',
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (_, _) => _goHome(),
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: _goHome,
           ),
-          SizedBox(width: R.hPad(context) - 16),
-        ],
-      ),
-      body: SafeArea(
-        bottom: true,
-        child: Stack(
-          children: [
-            WebViewWidget(controller: _controller),
-            if (_isDownloading) _DownloadOverlay(progress: _downloadProgress),
-            if (_isLoading && !_isDownloading)
-              const Center(
-                child: CircularProgressIndicator(color: AppTheme.primary),
-              ),
+          title: Text(
+            widget.title,
+            style: TextStyle(fontSize: R.fs(context, 16)),
+          ),
+          actions: [
+            IconButton(
+              icon: Icon(Icons.refresh, size: R.icon(context, 22)),
+              onPressed: () => _controller.reload(),
+              tooltip: 'Actualiser',
+            ),
+            SizedBox(width: R.hPad(context) - 16),
           ],
+        ),
+        body: SafeArea(
+          bottom: true,
+          child: Stack(
+            children: [
+              WebViewWidget(controller: _controller),
+              if (_isDownloading) _DownloadOverlay(progress: _downloadProgress),
+              if (_isLoading && !_isDownloading)
+                const Center(
+                  child: CircularProgressIndicator(color: AppTheme.primary),
+                ),
+            ],
+          ),
         ),
       ),
     );
