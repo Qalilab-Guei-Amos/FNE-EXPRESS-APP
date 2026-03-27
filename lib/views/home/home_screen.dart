@@ -71,17 +71,28 @@ class HomeScreen extends StatelessWidget {
                             color: AppTheme.textDark,
                           ),
                         ),
-                        TextButton(
-                          onPressed: () => Get.to(() => const HistoryScreen()),
-                          child: Text(
-                            'TOUT VOIR',
-                            style: TextStyle(
-                              fontSize: R.fs(context, 11),
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 0.5,
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.refresh_rounded),
                               color: AppTheme.primary,
+                              iconSize: 20,
+                              tooltip: 'Rafraîchir',
+                              onPressed: historyCtrl.loadRecords,
                             ),
-                          ),
+                            TextButton(
+                              onPressed: () => Get.to(() => const HistoryScreen()),
+                              child: Text(
+                                'TOUT VOIR',
+                                style: TextStyle(
+                                  fontSize: R.fs(context, 11),
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.5,
+                                  color: AppTheme.primary,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),

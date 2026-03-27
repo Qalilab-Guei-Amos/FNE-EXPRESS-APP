@@ -8,6 +8,7 @@ import '../models/fne_record.dart';
 import '../services/gemini_service.dart';
 import '../services/fne_api_service.dart';
 import '../services/storage_service.dart';
+import 'history_controller.dart';
 
 enum ValidationState { idle, extracting, reviewing, submitting, success, error }
 
@@ -373,6 +374,9 @@ class ValidationController extends GetxController {
         invoice: inv,
       );
       await Get.find<StorageService>().saveFne(record);
+      if (Get.isRegistered<HistoryController>()) {
+        Get.find<HistoryController>().loadRecords();
+      }
       generatedFne.value = record;
       state.value = ValidationState.success;
     } else {
