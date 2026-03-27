@@ -9,14 +9,7 @@ import '../services/gemini_service.dart';
 import '../services/fne_api_service.dart';
 import '../services/storage_service.dart';
 
-enum ValidationState {
-  idle,
-  extracting,
-  reviewing,
-  submitting,
-  success,
-  error
-}
+enum ValidationState { idle, extracting, reviewing, submitting, success, error }
 
 class ValidationController extends GetxController {
   final Rx<ValidationState> state = ValidationState.idle.obs;
@@ -44,11 +37,16 @@ class ValidationController extends GetxController {
   // Code TVA global (appliqué à tous les articles par défaut)
   final RxString globalTaxCode = 'TVAD'.obs;
 
+  // Fichier conservé pour relancer l'extraction en cas d'erreur
+  File? _lastFile;
+  String _lastMimeType = '';
+  final RxBool isExtractionError = false.obs;
+
   // Contrôleurs articles : champs texte
-  final RxList<Map<String, TextEditingController>> itemControllers =
-      <Map<String, TextEditingController>>[].obs;
-  // Code TVA par article (parallèle à itemControllers)
-  final RxList<RxString> itemTaxCodes = <RxString>[].obs;
+  final itemControllers = <Map<String, TextEditingController>>[].obs;
+  final itemTaxCodes = <RxString>[].obs;
+
+  final RxInt currentStep = 0.obs;
 
   @override
   void onInit() {
@@ -61,6 +59,24 @@ class ValidationController extends GetxController {
     clientNccCtrl = TextEditingController();
     rneCtrl = TextEditingController();
     foreignCurrencyRateCtrl = TextEditingController();
+    currentStep.value = 0;
+  }
+
+  void nextStep() {
+    if (currentStep.value < 1) {
+      // Validation basique de l'étape 1 avant de passer à l'étape 2
+      if (clientNameCtrl.text.isEmpty) {
+        _showError('Veuillez saisir le nom du client.');
+        return;
+      }
+      currentStep.value++;
+    }
+  }
+
+  void previousStep() {
+    if (currentStep.value > 0) {
+      currentStep.value--;
+    }
   }
 
   @override
@@ -90,20 +106,35 @@ class ValidationController extends GetxController {
   void startManualEntry() {
     _loadInvoice(ExtractedInvoice(items: []));
     state.value = ValidationState.reviewing;
+    currentStep.value = 0;
   }
 
   Future<void> extractFromFile(File file, String mimeType) async {
+    _lastFile = file;
+    _lastMimeType = mimeType;
+    isExtractionError.value = false;
     state.value = ValidationState.extracting;
     errorMessage.value = '';
+    currentStep.value = 0;
     try {
       final bytes = await file.readAsBytes();
-      final extracted =
-          await Get.find<GeminiService>().extractFromBytes(bytes, mimeType);
+      final extracted = await Get.find<GeminiService>().extractFromBytes(
+        bytes,
+        mimeType,
+      );
       _loadInvoice(extracted);
       state.value = ValidationState.reviewing;
     } catch (e) {
-      errorMessage.value = 'Erreur d\'extraction : $e';
+      isExtractionError.value = true;
+      print(e);
+      errorMessage.value = 'Erreur d\'extraction';
       state.value = ValidationState.error;
+    }
+  }
+
+  Future<void> retryExtraction() async {
+    if (_lastFile != null) {
+      await extractFromFile(_lastFile!, _lastMimeType);
     }
   }
 
@@ -130,19 +161,30 @@ class ValidationController extends GetxController {
       dateCtrl.text = '';
     }
     _disposeItemControllers();
+    // Charger les articles dans l'ordre original
     for (final item in extracted.items) {
-      _addItemControllers(item);
+      _addItemControllers(item, atTop: false);
     }
   }
 
-  void _addItemControllers(InvoiceItem item) {
-    itemControllers.add({
+  final scrollController = ScrollController();
+
+  void _addItemControllers(InvoiceItem item, {bool atTop = true}) {
+    final controllers = {
       'designation': TextEditingController(text: item.designation),
       'quantity': TextEditingController(text: item.quantity.toString()),
-      'unitPrice': TextEditingController(text: item.unitPrice.toStringAsFixed(0)),
-    });
-    // Toujours utiliser le code TVA global par défaut
-    itemTaxCodes.add(globalTaxCode.value.obs);
+      'unitPrice':
+          TextEditingController(text: item.unitPrice.toStringAsFixed(0)),
+      'discount': TextEditingController(text: item.discount.toStringAsFixed(0)),
+    };
+
+    if (atTop) {
+      itemControllers.insert(0, controllers);
+      itemTaxCodes.insert(0, globalTaxCode.value.obs);
+    } else {
+      itemControllers.add(controllers);
+      itemTaxCodes.add(globalTaxCode.value.obs);
+    }
   }
 
   /// Applique le code TVA global à tous les articles existants.
@@ -156,15 +198,35 @@ class ValidationController extends GetxController {
 
   void addItem() {
     final newItem = InvoiceItem(
-        designation: '', quantity: 1, unitPrice: 0, taxCode: globalTaxCode.value);
+      designation: '',
+      quantity: 1,
+      unitPrice: 0,
+      discount: 0,
+      taxCode: globalTaxCode.value,
+    );
     final currentInv = invoice.value;
     if (currentInv == null) {
       invoice.value = ExtractedInvoice(items: [newItem]);
     } else {
-      currentInv.items.add(newItem);
-      invoice.value = _copyInvoice(currentInv, items: List.from(currentInv.items));
+      // Insertion en haut de liste
+      currentInv.items.insert(0, newItem);
+      invoice.value = _copyInvoice(
+        currentInv,
+        items: List.from(currentInv.items),
+      );
     }
-    _addItemControllers(newItem);
+    _addItemControllers(newItem, atTop: true);
+
+    // Retour en haut pour voir le nouvel article
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (scrollController.hasClients) {
+        scrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   void removeItem(int index) {
@@ -187,6 +249,7 @@ class ValidationController extends GetxController {
       designation: ctrls['designation']!.text,
       quantity: double.tryParse(ctrls['quantity']!.text) ?? 0,
       unitPrice: double.tryParse(ctrls['unitPrice']!.text) ?? 0,
+      discount: double.tryParse(ctrls['discount']!.text) ?? 0,
       taxCode: index < itemTaxCodes.length ? itemTaxCodes[index].value : 'TVA',
     );
     _refreshTotals();
@@ -198,8 +261,10 @@ class ValidationController extends GetxController {
     invoice.value = _copyInvoice(inv, items: List.from(inv.items));
   }
 
-  ExtractedInvoice _copyInvoice(ExtractedInvoice inv,
-      {List<InvoiceItem>? items}) {
+  ExtractedInvoice _copyInvoice(
+    ExtractedInvoice inv, {
+    List<InvoiceItem>? items,
+  }) {
     return ExtractedInvoice(
       clientName: inv.clientName,
       date: inv.date,
@@ -287,7 +352,8 @@ class ValidationController extends GetxController {
         inv.foreignCurrency.isNotEmpty &&
         inv.foreignCurrencyRate <= 0) {
       _showError(
-          'Veuillez saisir le taux de change pour la devise ${inv.foreignCurrency}.');
+        'Veuillez saisir le taux de change pour la devise ${inv.foreignCurrency}.',
+      );
       return;
     }
 

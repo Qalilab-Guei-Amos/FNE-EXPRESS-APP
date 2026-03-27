@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static const Color primary = Color(0xFF1A6B3C);
-  static const Color primaryLight = Color(0xFF2E8B57);
-  static const Color accent = Color(0xFFF7941D);
-  static const Color background = Color(0xFFF5F7FA);
+  static const Color primary = Color(0xFF036F4F); // Teal Deep Green
+  static const Color primaryDark = Color(0xFF00251A);
+  static const Color primaryLight = Color(0xFF4DB6AC);
+  static const Color accent = Color(0xFFFA9A67); // Deep Orange
+  static const Color background = Color(0xFFF1F5F9); // Light Slate
   static const Color cardBg = Colors.white;
-  static const Color textDark = Color(0xFF1A1A2E);
-  static const Color textGrey = Color(0xFF6B7280);
-  static const Color divider = Color(0xFFE5E7EB);
+  static const Color textDark = Color(0xFF0F172A); // Slate 900
+  static const Color textGrey = Color(0xFF64748B); // Slate 500
+  static const Color divider = Color(0xFFE2E8F0); // Slate 200
 
   static ThemeData get lightTheme => ThemeData(
         useMaterial3: true,

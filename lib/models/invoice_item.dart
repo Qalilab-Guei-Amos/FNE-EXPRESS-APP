@@ -25,6 +25,7 @@ class InvoiceItem {
   String designation;
   double quantity;
   double unitPrice;
+  double discount;
   /// Code TVA explicite : 'TVA', 'TVAB', 'TVAC', 'TVAD'
   String taxCode;
 
@@ -32,14 +33,16 @@ class InvoiceItem {
     required this.designation,
     required this.quantity,
     required this.unitPrice,
+    this.discount = 0.0,
     this.taxCode = 'TVA',
   });
 
   double get tvaRate => kTaxRates[taxCode] ?? 0.18;
 
-  double get amountHT  => quantity * unitPrice;
-  double get amountTVA => amountHT * tvaRate;
-  double get amountTTC => amountHT + amountTVA;
+  double get amountBrut => quantity * unitPrice;
+  double get amountHT   => (amountBrut - discount).clamp(0, double.infinity);
+  double get amountTVA  => amountHT * tvaRate;
+  double get amountTTC  => amountHT + amountTVA;
 
   /// Code TVA pour l'API FNE
   List<String> get taxesCodes => [taxCode];
@@ -48,6 +51,7 @@ class InvoiceItem {
         'designation': designation,
         'quantity': quantity,
         'unitPrice': unitPrice,
+        'discount': discount,
         'taxCode': taxCode,
         'amountHT': amountHT,
         'amountTVA': amountTVA,
@@ -72,6 +76,7 @@ class InvoiceItem {
       designation: (json['designation'] ?? '').toString(),
       quantity: toDoubleValue(json['quantity']),
       unitPrice: toDoubleValue(json['unitPrice']),
+      discount: toDoubleValue(json['discount']),
       taxCode: code,
     );
   }
@@ -80,12 +85,14 @@ class InvoiceItem {
     String? designation,
     double? quantity,
     double? unitPrice,
+    double? discount,
     String? taxCode,
   }) =>
       InvoiceItem(
         designation: designation ?? this.designation,
         quantity: quantity ?? this.quantity,
         unitPrice: unitPrice ?? this.unitPrice,
+        discount: discount ?? this.discount,
         taxCode: taxCode ?? this.taxCode,
       );
 }

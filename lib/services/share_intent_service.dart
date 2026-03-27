@@ -12,6 +12,10 @@ import '../views/validation/validation_screen.dart';
 class ShareIntentService extends GetxService {
   late StreamSubscription<List<SharedFile>> _sub;
 
+  // Flag statique : survit à la re-création du service mais pas à la mort du process.
+  // Empêche de retraiter un intent initial déjà consommé lors de la même session.
+  static bool _initialSharingConsumed = false;
+
   @override
   void onInit() {
     super.onInit();
@@ -21,10 +25,15 @@ class ShareIntentService extends GetxService {
         .getMediaStream()
         .listen(_handleFiles, onError: (_) {});
 
-    // App fermée (cold start) → intent initial
-    FlutterSharingIntent.instance
-        .getInitialSharing()
-        .then(_handleFiles);
+    // App fermée (cold start) → intent initial (traité une seule fois par session)
+    if (!_initialSharingConsumed) {
+      FlutterSharingIntent.instance.getInitialSharing().then((files) {
+        if (files.isNotEmpty) {
+          _initialSharingConsumed = true;
+          _handleFiles(files);
+        }
+      });
+    }
   }
 
   @override
@@ -89,10 +98,7 @@ class ShareIntentService extends GetxService {
     final acqCtrl = Get.put(AcquisitionController());
     acqCtrl.loadSharedFile(path, mimeType);
 
-    // Supprimer l'ancienne instance du ValidationController s'il existe
-    if (Get.isRegistered<ValidationController>()) {
-      Get.delete<ValidationController>();
-    }
+    Get.delete<ValidationController>(force: true);
     final validCtrl = Get.put(ValidationController());
 
     // 2. Naviguer vers l'écran de validation

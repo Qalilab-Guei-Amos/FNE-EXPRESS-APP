@@ -17,7 +17,7 @@ class FneApiResult {
   });
 }
 
-// Données vendeur fixes pour la v1
+// Données vendeur fixes pour l'utilisateur unique
 const String kPointOfSale   = 'AMANI DIGITAL SERVICES';
 const String kEstablishment = 'AMANI DIGITAL SERVICES';
 const String kSellerName    = 'AMANI DIGITAL SERVICES';
@@ -108,7 +108,7 @@ class FneApiService extends GetxService {
                     ? item.quantity.toInt()
                     : item.quantity,
                 'amount': item.unitPrice,
-                'discount': 0,
+                'discount': item.discount,
                 'measurementUnit': '',
               },
             )

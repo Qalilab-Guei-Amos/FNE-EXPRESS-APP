@@ -57,9 +57,10 @@ class SettingsScreen extends StatelessWidget {
                       SizedBox(height: R.gap(context) * 0.8),
                       _Field(
                         controller: ctrl.pointOfSaleCtrl,
-                        label: 'Nom du point de vente *',
-                        hint: 'Ex : Boutique Plateau',
-                        icon: Icons.storefront_outlined,
+                        label: 'ID du point de vente *',
+                        hint: 'Numéro fourni par la DGI',
+                        icon: Icons.pin,
+                        keyboardType: TextInputType.number,
                       ),
                       SizedBox(height: R.gap(context) * 0.8),
                       _Field(

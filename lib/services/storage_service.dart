@@ -7,6 +7,7 @@ class StorageService extends GetxService {
   static const String _fneBoxName = 'fne_records';
   static const String _settingsBoxName = 'settings';
   static const String _settingsKey = 'config';
+  static const String _welcomeKey = 'has_seen_welcome';
 
   late Box<String> _fneBox;
   late Box<String> _settingsBox;
@@ -47,6 +48,27 @@ class StorageService extends GetxService {
     }
     records.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return records;
+  }
+
+  Future<void> updateFnePdfPath(String id, String pdfPath) async {
+    final record = getFneById(id);
+    if (record == null) return;
+    await saveFne(FneRecord(
+      id: record.id,
+      createdAt: record.createdAt,
+      clientName: record.clientName,
+      totalTTC: record.totalTTC,
+      fneNumber: record.fneNumber,
+      qrCode: record.qrCode,
+      pdfPath: pdfPath,
+      invoice: record.invoice,
+    ));
+  }
+
+  bool get hasSeenWelcome => _settingsBox.get(_welcomeKey) == 'true';
+
+  Future<void> setHasSeenWelcome() async {
+    await _settingsBox.put(_welcomeKey, 'true');
   }
 
   Future<void> deleteFne(String id) async {

@@ -13,6 +13,7 @@ import 'services/gemini_service.dart';
 import 'services/fne_api_service.dart';
 import 'services/share_intent_service.dart';
 import 'views/welcome/welcome_screen.dart';
+import 'views/home/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,22 +25,21 @@ void main() async {
   await Hive.initFlutter();
 
   // Enregistrement des services GetX (permanents pour toute la durée de l'app)
-  await Get.putAsync<StorageService>(() => StorageService().init());
+  final storage = await Get.putAsync<StorageService>(() => StorageService().init());
   Get.put<GeminiService>(GeminiService());
   Get.put<FneApiService>(FneApiService());
   Get.put<ShareIntentService>(ShareIntentService());
 
   await initializeDateFormatting('fr_FR', null);
 
-  // SystemChrome.setSystemUIOverlayStyle(
-  //   const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
-  // );
+  final bool hasSeenWelcome = storage.hasSeenWelcome;
 
-  runApp(const FneExpressApp());
+  runApp(FneExpressApp(showWelcome: !hasSeenWelcome));
 }
 
 class FneExpressApp extends StatelessWidget {
-  const FneExpressApp({super.key});
+  final bool showWelcome;
+  const FneExpressApp({super.key, required this.showWelcome});
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +53,7 @@ class FneExpressApp extends StatelessWidget {
           locale: const Locale('fr', 'FR'),
           debugShowCheckedModeBanner: false,
           defaultTransition: Transition.fadeIn,
-          transitionDuration: const Duration(milliseconds: 200),
+          transitionDuration: const Duration(milliseconds: 100),
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
@@ -61,7 +61,7 @@ class FneExpressApp extends StatelessWidget {
           ],
           supportedLocales: const [Locale('fr', 'FR')],
           theme: AppTheme.lightTheme,
-          home: const WelcomeScreen(),
+          home: showWelcome ? const WelcomeScreen() : const HomeScreen(),
         ),
       ),
     );

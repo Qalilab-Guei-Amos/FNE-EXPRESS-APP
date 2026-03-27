@@ -15,20 +15,18 @@ class R {
   /// Padding horizontal des pages
   static double hPad(BuildContext ctx) {
     final w = _w(ctx);
-    if (w >= 900) return 56;
-    if (w >= 600) return 36;
-    return 20;
+    if (w >= 1200) return 32;
+    if (w >= 600) return 24;
+    return 16;
   }
 
   /// Padding vertical des sections
-  static double vPad(BuildContext ctx) => isTablet(ctx) ? 28 : 20;
+  static double vPad(BuildContext ctx) => isTablet(ctx) ? 20 : 16;
 
   /// Largeur max du contenu (centré sur grands écrans)
   static double maxW(BuildContext ctx) {
     final w = _w(ctx);
-    if (w >= 1200) return 960;
-    if (w >= 900) return 820;
-    if (w >= 600) return double.infinity;
+    if (w >= 1400) return 1300;
     return double.infinity;
   }
 

@@ -39,18 +39,13 @@ class SettingsController extends GetxController {
   }
 
   void _loadSettings() {
-    final saved = Get.find<StorageService>().getSettings();
-    establishmentCtrl.text = saved?.establishment.isNotEmpty == true
-        ? saved!.establishment
-        : dotenv.env['FNE_ESTABLISHMENT'] ?? '';
-    pointOfSaleCtrl.text = saved?.pointOfSale.isNotEmpty == true
-        ? saved!.pointOfSale
-        : dotenv.env['FNE_POINT_OF_SALE'] ?? '';
-    sellerNameCtrl.text = saved?.sellerName ?? '';
-    commercialMessageCtrl.text = saved?.commercialMessage ?? '';
-    footerCtrl.text = saved?.footer ?? '';
-    defaultPaymentMethod.value = saved?.defaultPaymentMethod ?? 'mobile-money';
-    defaultTemplate.value = saved?.defaultTemplate ?? 'B2B';
+    establishmentCtrl.text = 'AMANI DIGITAL SERVICES';
+    pointOfSaleCtrl.text = 'ABIDJAN_PLATEAU_01';
+    sellerNameCtrl.text = 'AMANI';
+    commercialMessageCtrl.text = 'Merci de votre confiance. Appli Générée par FNE Express.';
+    footerCtrl.text = 'SOCIÉTÉ ANONYME AU CAPITAL DE 10.000.000 FCFA';
+    defaultPaymentMethod.value = 'espèces';
+    defaultTemplate.value = 'B2B';
   }
 
   Future<void> save() async {

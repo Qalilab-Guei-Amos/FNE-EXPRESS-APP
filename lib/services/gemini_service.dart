@@ -39,16 +39,16 @@ RÈGLES SUR LES PRIX
    - Si colonne TTC  → unitPrice = valeur ÷ (1 + tvaRate)
    - Si colonne HT   → unitPrice = valeur telle quelle
 3. taxCode par article selon les indications sur la facture :
-   - "TVA"  : taux 18% (normal) — par défaut si non précisé
+   - "TVA"  : taux 18% (normal)
    - "TVAB" : taux 9% (réduit)
    - "TVAC" : taux 0% (exonéré convention)
-   - "TVAD" : taux 0% (exonéré légal — TEE, RME)
+   - "TVAD" : taux 0% (exonéré légal — TEE, RME) - par défaut si non précisé
 
 ══════════════════════════════════════════════
 RÈGLES SUR LE CLIENT
 ══════════════════════════════════════════════
 4. clientName   : nom de l'entreprise ou de la personne cliente (champ "Client", "Acheteur", "Vendu à", etc.)
-5. clientPhone  : numéro de téléphone du client (cherche "Tél", "Tel", "Mobile", "Contact")
+5. clientPhone  : numéro de téléphone du client (cherche "Tél", "Tel", "N° Tel" "Mobile", "Contact")
 6. clientEmail  : adresse e-mail du client (cherche "@")
 7. clientNcc    : NCC / numéro fiscal du client (cherche "NCC", "CC N°", "CC:", "N° fiscal", "NIF", "Identifiant fiscal")
 
