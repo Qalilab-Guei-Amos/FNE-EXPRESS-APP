@@ -46,6 +46,7 @@ class ValidationController extends GetxController {
   // Contrôleurs articles : champs texte
   final itemControllers = <Map<String, TextEditingController>>[].obs;
   final itemTaxCodes = <RxString>[].obs;
+  final itemExpanded = <RxBool>[].obs;
 
   final RxInt currentStep = 0.obs;
 
@@ -64,10 +65,26 @@ class ValidationController extends GetxController {
   }
 
   void nextStep() {
-    if (currentStep.value < 1) {
-      // Validation basique de l'étape 1 avant de passer à l'étape 2
-      if (clientNameCtrl.text.isEmpty) {
+    if (currentStep.value == 0) {
+      // Client → Produits : validation des champs client
+      if (clientNameCtrl.text.trim().isEmpty) {
         _showError('Veuillez saisir le nom du client.');
+        return;
+      }
+      if (clientPhoneCtrl.text.trim().isEmpty) {
+        _showError('Veuillez saisir le numéro de téléphone du client.');
+        return;
+      }
+      if (clientEmailCtrl.text.trim().isEmpty) {
+        _showError('Veuillez saisir l\'e-mail du client.');
+        return;
+      }
+      if (template.value == 'B2B' && clientNccCtrl.text.trim().isEmpty) {
+        _showError('Le NCC du client est requis pour une facture B2B.');
+        return;
+      }
+      if (isRne.value && rneCtrl.text.trim().isEmpty) {
+        _showError('Veuillez saisir le numéro du reçu (RNE).');
         return;
       }
       currentStep.value++;
@@ -102,6 +119,7 @@ class ValidationController extends GetxController {
     }
     itemControllers.clear();
     itemTaxCodes.clear();
+    itemExpanded.clear();
   }
 
   void startManualEntry() {
@@ -170,10 +188,14 @@ class ValidationController extends GetxController {
 
   final scrollController = ScrollController();
 
-  void _addItemControllers(InvoiceItem item, {bool atTop = true}) {
+  void _addItemControllers(InvoiceItem item,
+      {bool atTop = true, bool expanded = false}) {
     final controllers = {
       'designation': TextEditingController(text: item.designation),
-      'quantity': TextEditingController(text: item.quantity.toString()),
+      'quantity': TextEditingController(
+          text: item.quantity % 1 == 0
+              ? item.quantity.toInt().toString()
+              : item.quantity.toString()),
       'unitPrice':
           TextEditingController(text: item.unitPrice.toStringAsFixed(0)),
       'discount': TextEditingController(text: item.discount.toStringAsFixed(0)),
@@ -181,10 +203,12 @@ class ValidationController extends GetxController {
 
     if (atTop) {
       itemControllers.insert(0, controllers);
-      itemTaxCodes.insert(0, globalTaxCode.value.obs);
+      itemTaxCodes.insert(0, (item.taxCode.isNotEmpty ? item.taxCode : globalTaxCode.value).obs);
+      itemExpanded.insert(0, expanded.obs);
     } else {
       itemControllers.add(controllers);
-      itemTaxCodes.add(globalTaxCode.value.obs);
+      itemTaxCodes.add((item.taxCode.isNotEmpty ? item.taxCode : globalTaxCode.value).obs);
+      itemExpanded.add(expanded.obs);
     }
   }
 
@@ -209,20 +233,19 @@ class ValidationController extends GetxController {
     if (currentInv == null) {
       invoice.value = ExtractedInvoice(items: [newItem]);
     } else {
-      // Insertion en haut de liste
-      currentInv.items.insert(0, newItem);
+      currentInv.items.add(newItem);
       invoice.value = _copyInvoice(
         currentInv,
         items: List.from(currentInv.items),
       );
     }
-    _addItemControllers(newItem, atTop: true);
+    _addItemControllers(newItem, atTop: false, expanded: true);
 
-    // Retour en haut pour voir le nouvel article
+    // Scroll vers le bas pour voir le nouvel article
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (scrollController.hasClients) {
         scrollController.animateTo(
-          0,
+          scrollController.position.maxScrollExtent,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
@@ -239,6 +262,7 @@ class ValidationController extends GetxController {
       c.dispose();
     }
     itemTaxCodes.removeAt(index);
+    if (index < itemExpanded.length) itemExpanded.removeAt(index);
     _refreshTotals();
   }
 

@@ -59,7 +59,7 @@ class HomeScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     StatsRow(historyCtrl: historyCtrl),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -115,7 +115,6 @@ class HomeScreen extends StatelessWidget {
               }
 
               final isTablet = R.isTablet(context);
-              final columns = isTablet ? 3 : 1;
 
               if (isTablet) {
                 return SliverPadding(
@@ -129,10 +128,10 @@ class HomeScreen extends StatelessWidget {
                       childCount: records.length,
                     ),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: columns,
+                      crossAxisCount: R.cols(context),
                       crossAxisSpacing: 16,
                       mainAxisSpacing: 16,
-                      childAspectRatio: 2.8,
+                      mainAxisExtent: 170,
                     ),
                   ),
                 );

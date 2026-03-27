@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../controllers/validation_controller.dart';
 import 'validation_stepper.dart';
-import 'info_step_view.dart';
 import 'articles_step_view.dart';
+import 'info_step_view.dart';
 import 'submit_bar.dart';
 
 class ReviewForm extends StatelessWidget {
@@ -19,15 +19,18 @@ class ReviewForm extends StatelessWidget {
 
         Expanded(
           child: Obx(() {
-            if (ctrl.currentStep.value == 0) {
-              return InfoStepView(ctrl: ctrl);
-            } else {
-              return ArticlesStepView(ctrl: ctrl);
+            switch (ctrl.currentStep.value) {
+              case 0:
+                return InfoStepView(ctrl: ctrl);
+              case 1:
+                return ArticlesStepView(ctrl: ctrl);
+              default:
+                return InfoStepView(ctrl: ctrl);
             }
           }),
         ),
 
-        // ── BARRE DE NAVIGATION (Suivant / Précédent / Certifier) ──
+        // ── BARRE DE NAVIGATION ───────────────────────────────────
         SubmitBar(ctrl: ctrl),
       ],
     );

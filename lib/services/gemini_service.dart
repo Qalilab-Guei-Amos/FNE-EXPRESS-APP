@@ -168,7 +168,7 @@ RAPPELS CRITIQUES :
     );
 
     final text = response.text ?? '';
-    print('[Extraction] Réponse brute reçue (${text.length} chars):\n$text');
+    // print('[Extraction] Réponse brute reçue (${text.length} chars):\n$text');
 
     final cleaned = text
         .replaceAll('```json', '')

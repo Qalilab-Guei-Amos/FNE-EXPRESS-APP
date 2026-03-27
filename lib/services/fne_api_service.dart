@@ -78,8 +78,6 @@ class FneApiService extends GetxService {
         'isRne': invoice.isRne,
         if (invoice.isRne && invoice.rne != null && invoice.rne!.isNotEmpty)
           'rne': invoice.rne,
-        if (invoice.invoiceNumber != null && invoice.invoiceNumber!.isNotEmpty)
-          'invoiceNumber': invoice.invoiceNumber,
         if (invoice.template == 'B2B' &&
             invoice.clientNcc != null &&
             invoice.clientNcc!.isNotEmpty)

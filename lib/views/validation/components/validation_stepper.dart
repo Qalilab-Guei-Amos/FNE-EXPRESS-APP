@@ -10,7 +10,7 @@ class ValidationStepper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 40),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: AppTheme.divider, width: 1)),
@@ -19,15 +19,13 @@ class ValidationStepper extends StatelessWidget {
         final step = ctrl.currentStep.value;
         return Row(
           children: [
-            _StepDot(label: 'Général', isActive: step >= 0, isCompleted: step > 0),
-            Expanded(
-              child: Container(
-                height: 2,
-                margin: const EdgeInsets.symmetric(horizontal: 8),
-                color: step > 0 ? AppTheme.primary : AppTheme.divider,
-              ),
-            ),
-            _StepDot(label: 'Articles', isActive: step >= 1, isCompleted: step > 1),
+            _StepDot(index: 1, label: 'Client',
+                isActive: step == 0,
+                isCompleted: step > 0),
+            _Connector(filled: step > 0),
+            _StepDot(index: 2, label: 'Produits',
+                isActive: step == 1,
+                isCompleted: false),
           ],
         );
       }),
@@ -35,12 +33,30 @@ class ValidationStepper extends StatelessWidget {
   }
 }
 
+class _Connector extends StatelessWidget {
+  final bool filled;
+  const _Connector({required this.filled});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        height: 2,
+        margin: const EdgeInsets.only(bottom: 18),
+        color: filled ? AppTheme.primary : AppTheme.divider,
+      ),
+    );
+  }
+}
+
 class _StepDot extends StatelessWidget {
+  final int index;
   final String label;
   final bool isActive;
   final bool isCompleted;
 
   const _StepDot({
+    required this.index,
     required this.label,
     required this.isActive,
     required this.isCompleted,
@@ -49,6 +65,7 @@ class _StepDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           width: 28,
@@ -56,33 +73,33 @@ class _StepDot extends StatelessWidget {
           decoration: BoxDecoration(
             color: isCompleted
                 ? AppTheme.primary
-                : (isActive ? Colors.white : Colors.grey.shade100),
+                : (isActive ? AppTheme.primary : Colors.grey.shade100),
             border: Border.all(
-              color: isActive ? AppTheme.primary : AppTheme.divider,
+              color: (isActive || isCompleted) ? AppTheme.primary : AppTheme.divider,
               width: 2,
             ),
             shape: BoxShape.circle,
           ),
           child: isCompleted
-              ? const Icon(Icons.check, color: Colors.white, size: 16)
+              ? const Icon(Icons.check, color: Colors.white, size: 14)
               : Center(
                   child: Text(
-                    label == 'Général' ? '1' : '2',
+                    '$index',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: isActive ? AppTheme.primary : AppTheme.textGrey,
+                      color: isActive ? Colors.white : AppTheme.textGrey,
                     ),
                   ),
                 ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 5),
         Text(
           label,
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-            color: isActive ? AppTheme.textDark : AppTheme.textGrey,
+            fontSize: 10,
+            fontWeight: (isActive || isCompleted) ? FontWeight.bold : FontWeight.normal,
+            color: (isActive || isCompleted) ? AppTheme.textDark : AppTheme.textGrey,
           ),
         ),
       ],

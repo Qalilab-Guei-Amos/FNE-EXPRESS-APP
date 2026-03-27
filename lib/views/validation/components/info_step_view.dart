@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show TextInputFormatter, TextEditingValue, TextSelection;
 import 'package:get/get.dart';
 import '../../../controllers/validation_controller.dart';
 import '../../../core/theme/app_theme.dart';
@@ -31,10 +32,24 @@ class InfoStepView extends StatelessWidget {
     return SingleChildScrollView(
       padding: EdgeInsets.all(pad),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Informations générales ─────────────────────────
+          // ── Titre ──────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Text(
+              'Informations client',
+              style: TextStyle(
+                fontSize: R.fs(context, 18),
+                fontWeight: FontWeight.w800,
+                color: AppTheme.textDark,
+              ),
+            ),
+          ),
+
+          // ── Identité du client ────────────────────────────────────
           SectionCard(
-            title: 'Informations générales',
+            title: 'Identité du client',
             child: Column(
               children: [
                 TextFormField(
@@ -42,58 +57,23 @@ class InfoStepView extends StatelessWidget {
                   style: TextStyle(fontSize: R.fs(context, 14)),
                   decoration: InputDecoration(
                     labelText: 'Nom du client *',
+                    hintText: 'Nom ou raison sociale',
                     labelStyle: TextStyle(fontSize: R.fs(context, 13.5)),
-                    prefixIcon: Icon(Icons.person_outline, size: R.icon(context, 20)),
+                    prefixIcon:
+                        Icon(Icons.person_outline, size: R.icon(context, 20)),
                   ),
                 ),
                 SizedBox(height: R.gap(context) * 0.8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: ctrl.dateCtrl,
-                        style: TextStyle(fontSize: R.fs(context, 14)),
-                        decoration: InputDecoration(
-                          labelText: 'Date (jj/mm/aaaa)',
-                          labelStyle: TextStyle(fontSize: R.fs(context, 12.5)),
-                          prefixIcon: Icon(Icons.calendar_today,
-                              size: R.icon(context, 18)),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: R.gap(context) * 0.7),
-                    Expanded(
-                      child: TextFormField(
-                        controller: ctrl.invoiceNumberCtrl,
-                        style: TextStyle(fontSize: R.fs(context, 14)),
-                        decoration: InputDecoration(
-                          labelText: 'N° Facture',
-                          labelStyle: TextStyle(fontSize: R.fs(context, 12.5)),
-                          prefixIcon:
-                              Icon(Icons.tag, size: R.icon(context, 18)),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: R.gap(context)),
-
-          // ── Informations client ────────────────────────────
-          SectionCard(
-            title: 'Contact Client',
-            child: Column(
-              children: [
                 TextFormField(
                   controller: ctrl.clientPhoneCtrl,
                   style: TextStyle(fontSize: R.fs(context, 14)),
                   keyboardType: TextInputType.phone,
                   decoration: InputDecoration(
                     labelText: 'Téléphone *',
+                    hintText: 'Ex: 0709080765',
                     labelStyle: TextStyle(fontSize: R.fs(context, 13.5)),
-                    prefixIcon: Icon(Icons.phone, size: R.icon(context, 20)),
+                    prefixIcon:
+                        Icon(Icons.phone_outlined, size: R.icon(context, 20)),
                   ),
                 ),
                 SizedBox(height: R.gap(context) * 0.8),
@@ -102,9 +82,11 @@ class InfoStepView extends StatelessWidget {
                   style: TextStyle(fontSize: R.fs(context, 14)),
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
-                    labelText: 'E-mail *',
+                    labelText: 'Email *',
+                    hintText: 'email@exemple.ci',
                     labelStyle: TextStyle(fontSize: R.fs(context, 13.5)),
-                    prefixIcon: Icon(Icons.email, size: R.icon(context, 20)),
+                    prefixIcon:
+                        Icon(Icons.email_outlined, size: R.icon(context, 20)),
                   ),
                 ),
                 SizedBox(height: R.gap(context) * 0.8),
@@ -115,8 +97,8 @@ class InfoStepView extends StatelessWidget {
                         decoration: InputDecoration(
                           labelText: 'NCC du client *',
                           labelStyle: TextStyle(fontSize: R.fs(context, 13.5)),
-                          prefixIcon:
-                              Icon(Icons.badge, size: R.icon(context, 20)),
+                          prefixIcon: Icon(Icons.badge_outlined,
+                              size: R.icon(context, 20)),
                         ),
                       )
                     : const SizedBox.shrink()),
@@ -125,18 +107,38 @@ class InfoStepView extends StatelessWidget {
           ),
           SizedBox(height: R.gap(context)),
 
-          // ── Paramètres FNE ─────────────────────────────────
+          // ── Paramètres de facturation ─────────────────────────────
           SectionCard(
-            title: 'Paramètres FNE',
+            title: 'Paramètres de facturation',
             child: Column(
               children: [
                 Obx(() => DropdownButtonFormField<String>(
-                      value: ctrl.paymentMethod.value,
+                      initialValue: ctrl.template.value,
                       decoration: InputDecoration(
-                        labelText: 'Mode de paiement',
+                        labelText: 'Type de facturation *',
                         labelStyle: TextStyle(fontSize: R.fs(context, 13.5)),
-                        prefixIcon:
-                            Icon(Icons.payment, size: R.icon(context, 20)),
+                        prefixIcon: Icon(Icons.account_tree_outlined,
+                            size: R.icon(context, 20)),
+                      ),
+                      style: TextStyle(
+                          fontSize: R.fs(context, 14),
+                          color: AppTheme.textDark),
+                      items: kTemplates.entries
+                          .map((e) => DropdownMenuItem(
+                              value: e.key, child: Text(e.value)))
+                          .toList(),
+                      onChanged: (v) {
+                        if (v != null) ctrl.template.value = v;
+                      },
+                    )),
+                SizedBox(height: R.gap(context) * 0.8),
+                Obx(() => DropdownButtonFormField<String>(
+                      initialValue: ctrl.paymentMethod.value,
+                      decoration: InputDecoration(
+                        labelText: 'Méthode de paiement *',
+                        labelStyle: TextStyle(fontSize: R.fs(context, 13.5)),
+                        prefixIcon: Icon(Icons.payment_outlined,
+                            size: R.icon(context, 20)),
                       ),
                       style: TextStyle(
                           fontSize: R.fs(context, 14),
@@ -150,25 +152,19 @@ class InfoStepView extends StatelessWidget {
                       },
                     )),
                 SizedBox(height: R.gap(context) * 0.8),
-                Obx(() => DropdownButtonFormField<String>(
-                      value: ctrl.template.value,
-                      decoration: InputDecoration(
-                        labelText: 'Type de facturation',
-                        labelStyle: TextStyle(fontSize: R.fs(context, 13.5)),
-                        prefixIcon:
-                            Icon(Icons.account_tree, size: R.icon(context, 20)),
-                      ),
-                      style: TextStyle(
-                          fontSize: R.fs(context, 14),
-                          color: AppTheme.textDark),
-                      items: kTemplates.entries
-                          .map((e) => DropdownMenuItem(
-                              value: e.key, child: Text(e.value)))
-                          .toList(),
-                      onChanged: (v) {
-                        if (v != null) ctrl.template.value = v;
-                      },
-                    )),
+                TextFormField(
+                  controller: ctrl.dateCtrl,
+                  style: TextStyle(fontSize: R.fs(context, 14)),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [_DateFormatter()],
+                  decoration: InputDecoration(
+                    labelText: 'Date de la facture',
+                    hintText: 'jj/mm/aaaa',
+                    labelStyle: TextStyle(fontSize: R.fs(context, 13.5)),
+                    prefixIcon: Icon(Icons.calendar_today_outlined,
+                        size: R.icon(context, 18)),
+                  ),
+                ),
                 SizedBox(height: R.gap(context) * 0.4),
                 Obx(() => SwitchListTile(
                       contentPadding: EdgeInsets.zero,
@@ -185,10 +181,10 @@ class InfoStepView extends StatelessWidget {
                         controller: ctrl.rneCtrl,
                         style: TextStyle(fontSize: R.fs(context, 14)),
                         decoration: InputDecoration(
-                          labelText: 'Numéro du reçu (RNE)',
+                          labelText: 'Numéro du reçu (RNE) *',
                           labelStyle: TextStyle(fontSize: R.fs(context, 13.5)),
-                          prefixIcon:
-                              Icon(Icons.receipt, size: R.icon(context, 20)),
+                          prefixIcon: Icon(Icons.receipt_outlined,
+                              size: R.icon(context, 20)),
                         ),
                       )
                     : const SizedBox.shrink()),
@@ -198,6 +194,36 @@ class InfoStepView extends StatelessWidget {
           const SizedBox(height: 40),
         ],
       ),
+    );
+  }
+}
+
+class _DateFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    // Ne garder que les chiffres
+    final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
+
+    // Construire dd/mm/yyyy (max 8 chiffres → 10 chars avec les /)
+    final buffer = StringBuffer();
+    for (int i = 0; i < digits.length && i < 8; i++) {
+      if (i == 2 || i == 4) buffer.write('/');
+      buffer.write(digits[i]);
+    }
+
+    // Ajouter automatiquement '/' dès le 2e et 4e chiffre saisi (pas en suppression)
+    final isAdding = newValue.text.length >= oldValue.text.length;
+    if (isAdding && (digits.length == 2 || digits.length == 4)) {
+      buffer.write('/');
+    }
+
+    final formatted = buffer.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }

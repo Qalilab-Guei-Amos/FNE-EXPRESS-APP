@@ -14,6 +14,25 @@ class SubmitBar extends StatelessWidget {
       final step = ctrl.currentStep.value;
       final isSubmitting = ctrl.state.value == ValidationState.submitting;
 
+      // Libellé et icône selon l'étape
+      final String label;
+      final IconData icon;
+      final VoidCallback? action;
+
+      if (isSubmitting) {
+        label = 'Certification...';
+        icon = Icons.hourglass_top;
+        action = null;
+      } else if (step == 1) {
+        label = 'Certifier FNE';
+        icon = Icons.verified_outlined;
+        action = ctrl.submitAndSign;
+      } else {
+        label = 'Suivant';
+        icon = Icons.arrow_forward;
+        action = ctrl.nextStep;
+      }
+
       return Container(
         padding: EdgeInsets.symmetric(
           horizontal: R.hPad(context),
@@ -44,7 +63,21 @@ class SubmitBar extends StatelessWidget {
                         borderRadius: BorderRadius.circular(R.radius(context)),
                       ),
                     ),
-                    child: Icon(Icons.arrow_back, color: AppTheme.primary),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.arrow_back, color: AppTheme.primary, size: 18),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Retour',
+                          style: TextStyle(
+                            color: AppTheme.primary,
+                            fontSize: R.fs(context, 13),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(width: 12),
                 ],
@@ -52,26 +85,25 @@ class SubmitBar extends StatelessWidget {
                   child: SizedBox(
                     height: R.btnH(context),
                     child: ElevatedButton.icon(
-                      onPressed: isSubmitting
-                          ? null
-                          : (step == 0 ? ctrl.nextStep : ctrl.submitAndSign),
+                      onPressed: action,
+                      style: step == 1
+                          ? ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primary,
+                              foregroundColor: Colors.white,
+                            )
+                          : null,
                       icon: isSubmitting
                           ? SizedBox(
-                              width: R.icon(context, 20),
-                              height: R.icon(context, 20),
+                              width: R.icon(context, 18),
+                              height: R.icon(context, 18),
                               child: const CircularProgressIndicator(
                                 color: Colors.white,
                                 strokeWidth: 2,
                               ),
                             )
-                          : Icon(
-                              step == 0 ? Icons.arrow_forward : Icons.verified,
-                              size: R.icon(context, 20),
-                            ),
+                          : Icon(icon, size: R.icon(context, 20)),
                       label: Text(
-                        isSubmitting
-                            ? 'Certification...'
-                            : (step == 0 ? 'Suivant' : 'Certifier la FNE'),
+                        label,
                         style: TextStyle(
                           fontSize: R.fs(context, 15),
                           fontWeight: FontWeight.bold,
