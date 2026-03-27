@@ -24,7 +24,17 @@ class GeminiService extends GetxService {
     super.onClose();
   }
 
-  String get _model => dotenv.env['GEMINI_MODEL'] ?? 'gemini-1.5-flash';
+  /// Liste ordonnée des modèles à essayer, lue depuis GEMINI_MODELS dans .env.
+  /// Ex : "gemini-2.5-flash,gemini-2.0-flash,gemini-1.5-flash"
+  List<String> get _models {
+    final raw = dotenv.env['GEMINI_MODELS'] ?? '';
+    final list = raw
+        .split(',')
+        .map((m) => m.trim())
+        .where((m) => m.isNotEmpty)
+        .toList();
+    return list.isNotEmpty ? list : ['gemini-1.5-flash'];
+  }
 
   static const String _prompt = '''
 Tu es un expert en extraction de données de factures commerciales en Côte d'Ivoire.
@@ -117,6 +127,25 @@ RAPPELS CRITIQUES :
       Uint8List bytes, String mimeType) async {
     print('[Extraction] Démarrage — mimeType: $mimeType, taille: ${bytes.length} octets');
 
+    final models = _models;
+    Exception? lastError;
+
+    for (int i = 0; i < models.length; i++) {
+      final model = models[i];
+      print('[Extraction] Tentative ${i + 1}/${models.length} avec le modèle: $model');
+      try {
+        return await _extractWithModel(model, bytes, mimeType);
+      } on Exception catch (e) {
+        print('[Extraction] Échec avec $model: $e');
+        lastError = e;
+      }
+    }
+
+    throw lastError ?? Exception('Extraction échouée — aucun modèle disponible.');
+  }
+
+  Future<ExtractedInvoice> _extractWithModel(
+      String model, Uint8List bytes, String mimeType) async {
     final request = GenerateContentRequest(
       contents: [
         Content.user([
@@ -133,10 +162,8 @@ RAPPELS CRITIQUES :
       ),
     );
 
-    print('[Extraction] Envoi de la requête au modèle: $_model');
-
     final response = await _client.models.generateContent(
-      model: _model,
+      model: model,
       request: request,
     );
 
@@ -147,20 +174,19 @@ RAPPELS CRITIQUES :
         .replaceAll('```json', '')
         .replaceAll('```', '')
         .trim();
-    print('[Extraction] JSON nettoyé:\n$cleaned');
 
     if (cleaned.isEmpty) {
-      throw Exception('Réponse vide du modèle IA.');
+      throw Exception('Réponse vide du modèle $model.');
     }
 
     Map<String, dynamic> jsonData;
     try {
       jsonData = jsonDecode(cleaned) as Map<String, dynamic>;
     } catch (e) {
-      print('[Extraction] Erreur de parsing JSON: $e\nTexte reçu:\n$cleaned');
-      throw Exception('Réponse IA invalide (JSON malformé). Veuillez réessayer.');
+      print('[Extraction] JSON malformé avec $model: $e');
+      throw Exception('Réponse IA invalide (JSON malformé) avec $model.');
     }
-    print('[Extraction] JSON parsé: $jsonData');
+    // print('[Extraction] JSON parsé: $jsonData');
 
     final invoice = ExtractedInvoice.fromJson(jsonData);
     print('[Extraction] Facture construite — client: ${invoice.clientName}, '

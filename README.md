@@ -15,19 +15,15 @@ L'application automatise ce processus grâce à l'intelligence artificielle et u
 ## Flux principal
 
 ```
-Import facture (photo/PDF)
+Import facture (photo / PDF / saisie manuelle)
         ↓
-Extraction IA (Gemini 1.5 Flash)
+Extraction IA (Gemini Flash)
         ↓
 Vérification humaine (formulaire éditable)
         ↓
-API FNE — Étape 1 (pré-enregistrement)
+Certification API FNE — POST /external/invoices/sign
         ↓
-Confirmation utilisateur
-        ↓
-API FNE — Étape 2 (génération FNE officielle)
-        ↓
-Affichage + archivage local
+Affichage QR code / PDF + archivage local
 ```
 
 ---
@@ -38,11 +34,13 @@ Affichage + archivage local
 |---|---|
 | Framework | Flutter (mobile + tablette) |
 | State management | GetX |
-| IA extraction | Gemini 1.5 Flash (`googleai_dart`) |
+| IA extraction | Gemini Flash (`googleai_dart`) |
 | Client HTTP | Dio |
 | Stockage local | Hive |
+| Visionneuse PDF | pdfx |
+| Visionneuse web | webview_flutter |
 | Variables d'env | flutter_dotenv |
-| Partage | share_plus |
+| Partage | share_plus + flutter_sharing_intent |
 | Sélection fichiers | file_picker + image_picker |
 | Responsive UI | Utilitaire `R` (breakpoints 600 / 900 dp) |
 
@@ -64,18 +62,19 @@ lib/
 │   └── fne_record.dart              # FNE archivée (sérialisée en JSON pour Hive)
 ├── services/                        # GetxService — un seul cycle de vie
 │   ├── gemini_service.dart          # Appel Gemini API (image/PDF → JSON structuré)
-│   ├── fne_api_service.dart         # API FNE en 2 étapes + mode mock intégré
+│   ├── fne_api_service.dart         # API FNE en 1 appel + mode mock intégré
 │   └── storage_service.dart         # CRUD Hive (Box<String> + sérialisation JSON)
 ├── controllers/
 │   ├── acquisition_controller.dart  # Caméra / galerie / sélecteur de fichiers
 │   ├── validation_controller.dart   # Machine à états du workflow complet
 │   └── history_controller.dart      # Chargement et suppression de l'historique
 └── views/
-    ├── home/home_screen.dart         # Accueil + liste/grille des FNE récentes
-    ├── acquisition/acquisition_screen.dart  # Import document + prévisualisation
-    ├── validation/validation_screen.dart    # Formulaire éditable + split-view tablette
-    ├── fne_result/fne_result_screen.dart    # Résultat FNE + QR code + partage
-    └── history/history_screen.dart          # Historique complet (swipe/grille)
+    ├── home/home_screen.dart                    # Accueil + liste des FNE récentes (auto-refresh)
+    ├── acquisition/acquisition_screen.dart      # Import document + prévisualisation
+    ├── validation/validation_screen.dart        # Formulaire éditable + split-view tablette
+    ├── fne_result/fne_web_view_screen.dart      # Visionneuse web QR code / FNE en ligne
+    ├── fne_result/fne_pdf_view_screen.dart      # Visionneuse PDF locale
+    └── history/history_screen.dart              # Historique complet (swipe / grille)
 ```
 
 ---
@@ -92,19 +91,19 @@ Get.put<FneApiService>(FneApiService());   // onInit → configure Dio
 ```
 
 ### GeminiService
-- Envoie l'image ou le PDF en base64 à Gemini 1.5 Flash
+- Envoie l'image ou le PDF en base64 à Gemini Flash
 - Retourne un `ExtractedInvoice` parsé depuis le JSON généré par le modèle
 - Le client `GoogleAIClient` est fermé proprement dans `onClose()`
 
 ### FneApiService
-- **Mode mock** actif tant que `FNE_API_KEY` vaut `YOUR_FNE_API_KEY`
-- **Étape 1** : `POST /factures` → retourne un `draftId`
-- **Étape 2** : `POST /factures/{id}/valider` → retourne numéro FNE + QR code
+- **Mode mock** actif tant que `FNE_API_KEY` est vide ou vaut `YOUR_FNE_API_KEY`
+- **Un seul appel** : `POST /external/invoices/sign` → retourne `reference` (numéro FNE) + `token` (QR code URL)
+- Identifiants vendeur lus depuis `.env` (`FNE_POINT_OF_SALE`, `FNE_ESTABLISHMENT`)
 
 ### StorageService
 - Box Hive `fne_records` (type `Box<String>`)
 - Chaque `FneRecord` est sérialisé en JSON string
-- Méthodes : `saveFne`, `getAllFne`, `deleteFne`, `getFneById`
+- Méthodes : `saveFne`, `getAllFne`, `deleteFne`, `getFneById`, `updateFnePdfPath`
 
 ---
 
@@ -123,12 +122,11 @@ L'utilitaire `R` (`lib/core/utils/responsive.dart`) adapte automatiquement l'int
 
 | Écran | Mobile | Tablette |
 |---|---|---|
-| Accueil | Liste verticale | Grille 2–3 colonnes |
+| Accueil | Liste verticale (6 dernières FNE) | Grille 3 colonnes |
 | Acquisition | 3 options empilées | 2 colonnes + 1 pleine largeur |
 | Validation | Formulaire seul | Split-view : facture originale ↔ formulaire |
 | Articles (validation) | 2 champs par ligne | 4 champs sur une ligne |
-| Confirmation | Récap vertical | Récap en 2 colonnes |
-| Résultat FNE | Empilé | Bannière+QR à gauche / détails à droite |
+| Résultat FNE | QR code + lien web | Visionneuse intégrée |
 | Historique | Liste swipe-to-delete | Grille 2–3 colonnes |
 
 ---
@@ -142,13 +140,14 @@ Toutes les clés et variables sensibles sont dans le fichier `.env` (non version
 # https://aistudio.google.com/app/apikey
 GEMINI_API_KEY=YOUR_GEMINI_API_KEY
 
-# Modèle Gemini
-GEMINI_MODEL=gemini-1.5-flash
+# Modèle Gemini à utiliser
+GEMINI_MODEL=gemini-3.1-flash-lite-preview
 
 # API FNE - DGI Côte d'Ivoire
-FNE_API_BASE_URL=https://api.fne.dgi.gouv.ci/v1
+FNE_API_BASE_URL=http://54.247.95.108/ws
 FNE_API_KEY=YOUR_FNE_API_KEY
-FNE_VENDOR_NIF=YOUR_NIF_NUMBER
+FNE_POINT_OF_SALE=NOM_DU_POINT_DE_VENTE
+FNE_ESTABLISHMENT=NOM_DE_L_ETABLISSEMENT
 ```
 
 > Le fichier `.env` est déclaré dans `pubspec.yaml` comme asset Flutter et protégé par `.gitignore`.
@@ -189,26 +188,34 @@ Déclarées dans `android/app/src/main/AndroidManifest.xml` :
 ## Dépendances principales
 
 ```yaml
-get: ^4.7.3                  # State management + navigation + services
-googleai_dart: ^3.6.0        # Client Gemini API (multimodal)
-dio: ^5.9.2                  # Client HTTP (API FNE)
-hive_flutter: ^1.1.0         # Stockage local NoSQL
-flutter_dotenv: ^6.0.0       # Variables d'environnement
-file_picker: ^10.3.10        # Import PDF/images
-image_picker: ^1.1.2         # Caméra et galerie
-share_plus: ^10.0.0          # Partage WhatsApp/email/impression
-flutter_pdfview: ^1.4.4      # Visionneuse PDF intégrée
-flutter_screenutil: ^5.9.3   # Adaptation tailles écrans
-toastification: ^3.0.3       # Notifications toast
+get: ^4.7.3                      # State management + navigation + services
+googleai_dart: ^3.6.0            # Client Gemini API (multimodal)
+dio: ^5.9.2                      # Client HTTP (API FNE)
+hive_flutter: ^1.1.0             # Stockage local NoSQL
+flutter_dotenv: ^6.0.0           # Variables d'environnement
+file_picker: ^10.3.10            # Import PDF/images
+image_picker: ^1.1.2             # Caméra et galerie
+share_plus: ^10.0.0              # Partage WhatsApp/email/impression
+flutter_sharing_intent: ^1.1.1   # Réception de fichiers partagés vers l'app
+pdfx: ^2.8.0                     # Visionneuse PDF intégrée
+webview_flutter: ^4.13.1         # Visionneuse web (QR code / FNE en ligne)
+url_launcher: ^6.3.1             # Ouverture de liens externes
+flutter_native_splash: ^2.4.7    # Écran de démarrage natif
+toastification: ^3.0.3           # Notifications toast
 ```
 
 ---
 
 ## Mode mock
 
-L'application fonctionne entièrement **sans API FNE configurée**. Tant que `FNE_API_KEY=YOUR_FNE_API_KEY` dans `.env`, les réponses de l'API FNE sont simulées localement :
+L'application fonctionne entièrement **sans API FNE configurée**. Tant que `FNE_API_KEY` est vide ou vaut `YOUR_FNE_API_KEY` dans `.env`, la réponse de l'API FNE est simulée localement :
 
-- Étape 1 : délai 1 s → retourne un `draftId` fictif
-- Étape 2 : délai 2 s → génère un numéro FNE au format `FNE-CI-YYYY-XXXXXX` avec QR code de vérification
+- Délai de 2 s → génère un numéro FNE au format `FNE-CI-YYYY-XXXXXX` avec une URL de vérification fictive
 
 Seule la clé Gemini est obligatoire pour l'extraction IA.
+
+---
+
+## Mise à jour de la liste d'accueil
+
+Après chaque certification réussie, la liste des FNE récentes sur l'écran d'accueil se met à jour **automatiquement**. Un bouton de rechargement manuel est également disponible à côté de la section "Dernières Activités" pour forcer une synchronisation depuis le stockage local.
