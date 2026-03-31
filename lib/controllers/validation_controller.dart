@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:toastification/toastification.dart';
 import '../models/extracted_invoice.dart';
-import '../models/invoice_item.dart';
 import '../models/fne_record.dart';
+import '../models/invoice_item.dart';
 import '../services/gemini_service.dart';
 import '../services/fne_api_service.dart';
 import '../services/storage_service.dart';
@@ -43,12 +43,18 @@ class ValidationController extends GetxController {
   String _lastMimeType = '';
   final RxBool isExtractionError = false.obs;
 
+  // Chemin du fichier source (brouillon / échec chargé depuis l'historique)
+  final RxString sourceFilePath = ''.obs;
+
   // Contrôleurs articles : champs texte
   final itemControllers = <Map<String, TextEditingController>>[].obs;
   final itemTaxCodes = <RxString>[].obs;
   final itemExpanded = <RxBool>[].obs;
 
   final RxInt currentStep = 0.obs;
+
+  // ID du brouillon en cours (pour mise à jour lors de la soumission)
+  String? _currentDraftId;
 
   @override
   void onInit() {
@@ -123,9 +129,11 @@ class ValidationController extends GetxController {
   }
 
   void startManualEntry() {
+    _currentDraftId = 'FNE_${DateTime.now().millisecondsSinceEpoch}';
     _loadInvoice(ExtractedInvoice(items: []));
     state.value = ValidationState.reviewing;
     currentStep.value = 0;
+    _persistDraft(ExtractedInvoice(items: []));
   }
 
   Future<void> extractFromFile(File file, String mimeType) async {
@@ -135,6 +143,7 @@ class ValidationController extends GetxController {
     state.value = ValidationState.extracting;
     errorMessage.value = '';
     currentStep.value = 0;
+    _currentDraftId = 'FNE_${DateTime.now().millisecondsSinceEpoch}';
     try {
       final bytes = await file.readAsBytes();
       final extracted = await Get.find<GeminiService>().extractFromBytes(
@@ -143,6 +152,7 @@ class ValidationController extends GetxController {
       );
       _loadInvoice(extracted);
       state.value = ValidationState.reviewing;
+      await _persistDraft(extracted);
     } catch (e) {
       isExtractionError.value = true;
       print(e);
@@ -155,6 +165,34 @@ class ValidationController extends GetxController {
     if (_lastFile != null) {
       await extractFromFile(_lastFile!, _lastMimeType);
     }
+  }
+
+  /// Charge un enregistrement existant (brouillon/échec) dans le formulaire
+  /// sans réextraction. L'ID est conservé pour mise à jour lors de la soumission.
+  void loadRecordForRetry(FneRecord record) {
+    _currentDraftId = record.id;
+    sourceFilePath.value = record.sourcePath ?? '';
+    _loadInvoice(record.invoice);
+    state.value = ValidationState.reviewing;
+    currentStep.value = 0;
+  }
+
+  /// Sauvegarde le brouillon initial après extraction ou saisie manuelle.
+  Future<void> _persistDraft(ExtractedInvoice inv) async {
+    if (_currentDraftId == null) return;
+    final draft = FneRecord(
+      id: _currentDraftId!,
+      createdAt: DateTime.now(),
+      clientName: inv.clientName?.trim().isNotEmpty == true
+          ? inv.clientName!
+          : 'Brouillon',
+      totalTTC: inv.totalTTC,
+      invoice: inv,
+      status: FneStatus.brouillon,
+      sourcePath: _lastFile?.path,
+    );
+    await Get.find<StorageService>().saveFne(draft);
+    _refreshHistory();
   }
 
   void _loadInvoice(ExtractedInvoice extracted) {
@@ -180,7 +218,6 @@ class ValidationController extends GetxController {
       dateCtrl.text = '';
     }
     _disposeItemControllers();
-    // Charger les articles dans l'ordre original
     for (final item in extracted.items) {
       _addItemControllers(item, atTop: false);
     }
@@ -203,16 +240,17 @@ class ValidationController extends GetxController {
 
     if (atTop) {
       itemControllers.insert(0, controllers);
-      itemTaxCodes.insert(0, (item.taxCode.isNotEmpty ? item.taxCode : globalTaxCode.value).obs);
+      itemTaxCodes.insert(0,
+          (item.taxCode.isNotEmpty ? item.taxCode : globalTaxCode.value).obs);
       itemExpanded.insert(0, expanded.obs);
     } else {
       itemControllers.add(controllers);
-      itemTaxCodes.add((item.taxCode.isNotEmpty ? item.taxCode : globalTaxCode.value).obs);
+      itemTaxCodes
+          .add((item.taxCode.isNotEmpty ? item.taxCode : globalTaxCode.value).obs);
       itemExpanded.add(expanded.obs);
     }
   }
 
-  /// Applique le code TVA global à tous les articles existants.
   void applyGlobalTaxCode(String code) {
     globalTaxCode.value = code;
     for (final rx in itemTaxCodes) {
@@ -241,7 +279,6 @@ class ValidationController extends GetxController {
     }
     _addItemControllers(newItem, atTop: false, expanded: true);
 
-    // Scroll vers le bas pour voir le nouvel article
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (scrollController.hasClients) {
         scrollController.animateTo(
@@ -275,7 +312,7 @@ class ValidationController extends GetxController {
       quantity: double.tryParse(ctrls['quantity']!.text) ?? 0,
       unitPrice: double.tryParse(ctrls['unitPrice']!.text) ?? 0,
       discount: double.tryParse(ctrls['discount']!.text) ?? 0,
-      taxCode: index < itemTaxCodes.length ? itemTaxCodes[index].value : 'TVA',
+      taxCode: index < itemTaxCodes.length ? itemTaxCodes[index].value : 'TVAD',
     );
     _refreshTotals();
   }
@@ -387,23 +424,44 @@ class ValidationController extends GetxController {
 
     final result = await Get.find<FneApiService>().signInvoice(inv);
 
+    final draftId =
+        _currentDraftId ?? 'FNE_${DateTime.now().millisecondsSinceEpoch}';
+
     if (result.success) {
       final record = FneRecord(
-        id: 'FNE_${DateTime.now().millisecondsSinceEpoch}',
+        id: draftId,
         createdAt: DateTime.now(),
         clientName: inv.clientName ?? 'Client inconnu',
         totalTTC: inv.totalTTC,
         fneNumber: result.fneNumber,
         qrCode: result.qrCode,
         invoice: inv,
+        status: FneStatus.certifiee,
       );
       await Get.find<StorageService>().saveFne(record);
-      if (Get.isRegistered<HistoryController>()) {
-        Get.find<HistoryController>().loadRecords();
-      }
+      _refreshHistory();
       generatedFne.value = record;
       state.value = ValidationState.success;
     } else {
+      // Mettre à jour le brouillon en statut "échec" avec les données du formulaire
+      final storage = Get.find<StorageService>();
+      final existing = storage.getFneById(draftId);
+      final echecRecord = (existing ?? FneRecord(
+        id: draftId,
+        createdAt: DateTime.now(),
+        clientName: inv.clientName ?? 'Client inconnu',
+        totalTTC: inv.totalTTC,
+        invoice: inv,
+      )).copyWith(
+        status: FneStatus.echec,
+        clientName: inv.clientName?.isNotEmpty == true
+            ? inv.clientName
+            : null,
+        totalTTC: inv.totalTTC,
+        invoice: inv,
+      );
+      await storage.saveFne(echecRecord);
+      _refreshHistory();
       errorMessage.value =
           result.errorMessage ?? 'Erreur lors de la certification';
       state.value = ValidationState.error;
@@ -413,6 +471,12 @@ class ValidationController extends GetxController {
   void resetToReviewing() {
     state.value = ValidationState.reviewing;
     errorMessage.value = '';
+  }
+
+  void _refreshHistory() {
+    if (Get.isRegistered<HistoryController>()) {
+      Get.find<HistoryController>().loadRecords();
+    }
   }
 
   void _showError(String message) {

@@ -12,6 +12,7 @@ import 'services/storage_service.dart';
 import 'services/gemini_service.dart';
 import 'services/fne_api_service.dart';
 import 'services/share_intent_service.dart';
+import 'services/export_service.dart';
 import 'views/welcome/welcome_screen.dart';
 import 'views/home/home_screen.dart';
 
@@ -29,6 +30,7 @@ void main() async {
   Get.put<GeminiService>(GeminiService());
   Get.put<FneApiService>(FneApiService());
   Get.put<ShareIntentService>(ShareIntentService());
+  Get.put<ExportService>(ExportService());
 
   await initializeDateFormatting('fr_FR', null);
 

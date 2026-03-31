@@ -23,19 +23,26 @@ class ValidationTabletLayout extends StatelessWidget {
         // ── Panneau prévisualisation (réactif) ──────────────────
         Expanded(
           child: Obx(() {
+            // Cas 1 : scan frais via AcquisitionController
             final file = acqCtrl?.selectedFile.value;
-            final isPdf =
-                acqCtrl?.selectedMimeType.value == 'application/pdf';
-
-            if (file == null) {
-              return _NoDocumentPlaceholder();
+            if (file != null) {
+              final isPdf =
+                  acqCtrl?.selectedMimeType.value == 'application/pdf';
+              return isPdf
+                  ? _PdfPanel(path: file.path)
+                  : _ImagePanel(path: file.path);
             }
 
-            if (isPdf) {
-              return _PdfPanel(path: file.path);
+            // Cas 2 : retry brouillon/échec — source sauvegardée
+            final sourcePath = ctrl.sourceFilePath.value;
+            if (sourcePath.isNotEmpty && File(sourcePath).existsSync()) {
+              final isPdf = sourcePath.toLowerCase().endsWith('.pdf');
+              return isPdf
+                  ? _PdfPanel(path: sourcePath)
+                  : _ImagePanel(path: sourcePath);
             }
 
-            return _ImagePanel(path: file.path);
+            return _NoDocumentPlaceholder();
           }),
         ),
 

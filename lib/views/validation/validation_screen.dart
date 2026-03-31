@@ -30,28 +30,45 @@ class ValidationScreen extends StatelessWidget {
               style: TextStyle(fontSize: R.fs(context, 18)),
             )),
         actions: [
-          if (!R.isTablet(context) && acqCtrl != null)
-            Builder(builder: (context) {
-              final aq = acqCtrl!;
-              return Obx(() {
-                final hasFile = aq.selectedFile.value != null;
-                final state = ctrl.state.value;
-                final canShow = hasFile &&
-                    (state == ValidationState.reviewing ||
-                        state == ValidationState.submitting);
-                if (!canShow) return const SizedBox.shrink();
+          if (!R.isTablet(context))
+            Obx(() {
+              final state = ctrl.state.value;
+              final canShow = state == ValidationState.reviewing ||
+                  state == ValidationState.submitting;
+              if (!canShow) return const SizedBox.shrink();
+
+              // Cas 1 : scan frais — fichier en mémoire via AcquisitionController
+              final aq = acqCtrl;
+              if (aq != null && aq.selectedFile.value != null) {
                 return IconButton(
                   icon: Icon(Icons.visibility_outlined,
                       size: R.icon(context, 22)),
                   tooltip: 'Voir la facture',
-                  onPressed: () => Get.to(
-                    () => _InvoicePreviewScreen(
-                      file: aq.selectedFile.value!,
-                      mimeType: aq.selectedMimeType.value,
-                    ),
-                  ),
+                  onPressed: () => Get.to(() => _InvoicePreviewScreen(
+                        file: aq.selectedFile.value!,
+                        mimeType: aq.selectedMimeType.value,
+                      )),
                 );
-              });
+              }
+
+              // Cas 2 : retry brouillon/échec — fichier sur disque via sourcePath
+              final path = ctrl.sourceFilePath.value;
+              if (path.isNotEmpty && File(path).existsSync()) {
+                final mimeType = path.toLowerCase().endsWith('.pdf')
+                    ? 'application/pdf'
+                    : 'image/jpeg';
+                return IconButton(
+                  icon: Icon(Icons.visibility_outlined,
+                      size: R.icon(context, 22)),
+                  tooltip: 'Voir la facture importée',
+                  onPressed: () => Get.to(() => _InvoicePreviewScreen(
+                        file: File(path),
+                        mimeType: mimeType,
+                      )),
+                );
+              }
+
+              return const SizedBox.shrink();
             }),
           if (R.isTablet(context)) SizedBox(width: R.hPad(context) - 16),
         ],

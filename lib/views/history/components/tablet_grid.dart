@@ -11,7 +11,8 @@ import 'delete_dialog.dart';
 
 class HistoryTabletGrid extends StatelessWidget {
   final HistoryController ctrl;
-  const HistoryTabletGrid({super.key, required this.ctrl});
+  final List<FneRecord> records;
+  const HistoryTabletGrid({super.key, required this.ctrl, required this.records});
 
   @override
   Widget build(BuildContext context) {
@@ -22,26 +23,42 @@ class HistoryTabletGrid extends StatelessWidget {
         crossAxisCount: R.cols(context),
         crossAxisSpacing: 14,
         mainAxisSpacing: 14,
-        childAspectRatio: R.isLargeTablet(context) ? 2.6 : 2.2,
+        mainAxisExtent: R.isLargeTablet(context) ? 195 : 175,
       ),
-      itemCount: ctrl.records.length,
+      itemCount: records.length,
       itemBuilder: (context, index) {
-        final record = ctrl.records[index];
+        final record = records[index];
+        final canDelete = record.status != FneStatus.certifiee;
         return HistoryCard(
           record: record,
-          onTap: () => openRecord(record),
-          onDelete: () => showDeleteDialog(context, ctrl, record.id),
+          onTap: () => openRecord(record, ctrl),
+          onDelete: canDelete
+              ? () async {
+                  final confirmed =
+                      await showDeleteDialog(context, ctrl, record);
+                  if (confirmed == true) ctrl.deleteRecord(record.id);
+                }
+              : null,
         );
       },
     );
   }
 }
 
-void openRecord(FneRecord record) {
+void openRecord(FneRecord record, HistoryController ctrl) {
+  // Brouillon ou échec → retour au formulaire de validation
+  if (record.status == FneStatus.brouillon ||
+      record.status == FneStatus.echec) {
+    ctrl.retryRecord(record);
+    return;
+  }
+
   // PDF local disponible → visionneuse directe
   final localPath = record.pdfPath;
-  if (localPath != null && localPath.isNotEmpty && File(localPath).existsSync()) {
-    Get.to(() => FnePdfViewScreen(path: localPath));
+  if (localPath != null &&
+      localPath.isNotEmpty &&
+      File(localPath).existsSync()) {
+    Get.to(() => FnePdfViewScreen(path: localPath, fromHistory: true));
     return;
   }
   // Fallback : WebView pour télécharger le PDF

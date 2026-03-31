@@ -7,7 +7,6 @@ import '../../controllers/settings_controller.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/responsive.dart';
 import '../../models/fne_record.dart';
-import '../history/history_screen.dart';
 import '../fne_result/fne_pdf_view_screen.dart';
 import '../fne_result/fne_web_view_screen.dart';
 import 'components/dashboard_header.dart';
@@ -71,28 +70,12 @@ class HomeScreen extends StatelessWidget {
                             color: AppTheme.textDark,
                           ),
                         ),
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.refresh_rounded),
-                              color: AppTheme.primary,
-                              iconSize: 20,
-                              tooltip: 'Rafraîchir',
-                              onPressed: historyCtrl.loadRecords,
-                            ),
-                            TextButton(
-                              onPressed: () => Get.to(() => const HistoryScreen()),
-                              child: Text(
-                                'TOUT VOIR',
-                                style: TextStyle(
-                                  fontSize: R.fs(context, 11),
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 0.5,
-                                  color: AppTheme.primary,
-                                ),
-                              ),
-                            ),
-                          ],
+                        IconButton(
+                          icon: const Icon(Icons.refresh_rounded),
+                          color: AppTheme.primary,
+                          iconSize: 20,
+                          tooltip: 'Rafraîchir',
+                          onPressed: historyCtrl.loadRecords,
                         ),
                       ],
                     ),
@@ -162,6 +145,12 @@ class HomeScreen extends StatelessWidget {
   }
 
   void _openRecord(FneRecord record) {
+    // Brouillon ou échec → retour au formulaire
+    if (record.status == FneStatus.brouillon ||
+        record.status == FneStatus.echec) {
+      Get.find<HistoryController>().retryRecord(record);
+      return;
+    }
     final localPath = record.pdfPath;
     if (localPath != null && localPath.isNotEmpty && File(localPath).existsSync()) {
       Get.to(() => FnePdfViewScreen(path: localPath));
