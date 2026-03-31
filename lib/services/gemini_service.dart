@@ -52,7 +52,7 @@ RÈGLES SUR LES PRIX
    - "TVA"  : taux 18% (normal)
    - "TVAB" : taux 9% (réduit)
    - "TVAC" : taux 0% (exonéré convention)
-   - "TVAD" : taux 0% (exonéré légal — TEE, RME) - par défaut si non précisé
+   - "TVAD" : taux 0% (exonéré légal — TEE, RME)
 
 ══════════════════════════════════════════════
 RÈGLES SUR LE CLIENT
@@ -120,19 +120,25 @@ RAPPELS CRITIQUES :
 - Extrais ABSOLUMENT TOUS les articles du tableau, sans en omettre aucun
 - Les montants sont en FCFA sauf si devise étrangère détectée
 - clientPhone : extrais uniquement les chiffres ou le format local (ex: "0709080765")
-- taxCode par défaut = "TVA" si non précisé sur la facture
+- taxCode par défaut = "TVAD" si non précisé sur la facture
 ''';
 
   Future<ExtractedInvoice> extractFromBytes(
-      Uint8List bytes, String mimeType) async {
-    print('[Extraction] Démarrage — mimeType: $mimeType, taille: ${bytes.length} octets');
+    Uint8List bytes,
+    String mimeType,
+  ) async {
+    print(
+      '[Extraction] Démarrage — mimeType: $mimeType, taille: ${bytes.length} octets',
+    );
 
     final models = _models;
     Exception? lastError;
 
     for (int i = 0; i < models.length; i++) {
       final model = models[i];
-      print('[Extraction] Tentative ${i + 1}/${models.length} avec le modèle: $model');
+      print(
+        '[Extraction] Tentative ${i + 1}/${models.length} avec le modèle: $model',
+      );
       try {
         return await _extractWithModel(model, bytes, mimeType);
       } on Exception catch (e) {
@@ -141,17 +147,18 @@ RAPPELS CRITIQUES :
       }
     }
 
-    throw lastError ?? Exception('Extraction échouée — aucun modèle disponible.');
+    throw lastError ??
+        Exception('Extraction échouée — aucun modèle disponible.');
   }
 
   Future<ExtractedInvoice> _extractWithModel(
-      String model, Uint8List bytes, String mimeType) async {
+    String model,
+    Uint8List bytes,
+    String mimeType,
+  ) async {
     final request = GenerateContentRequest(
       contents: [
-        Content.user([
-          Part.text(_prompt),
-          Part.bytes(bytes, mimeType),
-        ]),
+        Content.user([Part.text(_prompt), Part.bytes(bytes, mimeType)]),
       ],
       generationConfig: const GenerationConfig(
         temperature: 0.1,
@@ -170,10 +177,7 @@ RAPPELS CRITIQUES :
     final text = response.text ?? '';
     // print('[Extraction] Réponse brute reçue (${text.length} chars):\n$text');
 
-    final cleaned = text
-        .replaceAll('```json', '')
-        .replaceAll('```', '')
-        .trim();
+    final cleaned = text.replaceAll('```json', '').replaceAll('```', '').trim();
 
     if (cleaned.isEmpty) {
       throw Exception('Réponse vide du modèle $model.');
@@ -189,13 +193,17 @@ RAPPELS CRITIQUES :
     // print('[Extraction] JSON parsé: $jsonData');
 
     final invoice = ExtractedInvoice.fromJson(jsonData);
-    print('[Extraction] Facture construite — client: ${invoice.clientName}, '
-        '${invoice.items.length} article(s), totalTTC: ${invoice.totalTTC}');
+    print(
+      '[Extraction] Facture construite — client: ${invoice.clientName}, '
+      '${invoice.items.length} article(s), totalTTC: ${invoice.totalTTC}',
+    );
     for (int i = 0; i < invoice.items.length; i++) {
       final item = invoice.items[i];
-      print('[Extraction]   Article $i: ${item.designation} '
-          '× ${item.quantity} × ${item.unitPrice} HT '
-          '= ${item.amountTTC} TTC');
+      print(
+        '[Extraction]   Article $i: ${item.designation} '
+        '× ${item.quantity} × ${item.unitPrice} HT '
+        '= ${item.amountTTC} TTC',
+      );
     }
 
     return invoice;
