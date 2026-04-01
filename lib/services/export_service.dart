@@ -7,6 +7,8 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:syncfusion_flutter_xlsio/xlsio.dart' as xlsio;
+import 'package:flutter/material.dart';
+import 'package:toastification/toastification.dart';
 import '../models/fne_record.dart';
 import '../core/utils/formatters.dart';
 import '../views/fne_result/fne_pdf_view_screen.dart';
@@ -426,9 +428,12 @@ class ExportService extends GetxService {
             FnePdfViewScreen(path: file.path, title: title, fromHistory: true),
       );
     } catch (e) {
-      Get.snackbar(
-        'Erreur d\'exportation',
-        'Impossible de générer le rapport PDF.',
+      toastification.show(
+        title: const Text('Erreur d\'exportation'),
+        description: const Text('Impossible de générer le rapport PDF 📄❌'),
+        type: ToastificationType.error,
+        style: ToastificationStyle.flat,
+        autoCloseDuration: const Duration(seconds: 4),
       );
     }
   }
@@ -535,7 +540,13 @@ class ExportService extends GetxService {
         subject: 'Rapport Financier - ${settings.establishmentCtrl.text}',
       );
     } catch (e) {
-      Get.snackbar('Erreur Excel', 'Impossible de générer le fichier .xlsx');
+      toastification.show(
+        title: const Text('Erreur Excel'),
+        description: const Text('Impossible de générer le fichier .xlsx 📊❌'),
+        type: ToastificationType.error,
+        style: ToastificationStyle.flat,
+        autoCloseDuration: const Duration(seconds: 4),
+      );
     }
   }
 

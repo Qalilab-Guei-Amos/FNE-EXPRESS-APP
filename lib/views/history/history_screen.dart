@@ -8,6 +8,8 @@ import '../../models/fne_record.dart';
 import '../../services/export_service.dart';
 import 'components/mobile_list.dart';
 import 'components/tablet_grid.dart';
+import '../../controllers/auth_controller.dart';
+import '../auth/auth_screen.dart';
 
 class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});
@@ -300,8 +302,34 @@ class HistoryScreen extends StatelessWidget {
   }
 
   Widget _buildHeaderActions(HistoryController ctrl, BuildContext context) {
+    final authCtrl = Get.isRegistered<AuthController>() ? Get.find<AuthController>() : Get.put(AuthController());
+    
     return Row(
       children: [
+        Obx(() {
+          final bool isLoggedIn = authCtrl.currentUser.value != null;
+          return GestureDetector(
+            onTap: () => Get.to(() => const AuthScreen()),
+            child: Container(
+              margin: const EdgeInsets.only(right: 6),
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: isLoggedIn 
+                    ? Colors.white.withValues(alpha: 0.25)
+                    : Colors.white.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+                border: Border.all(
+                    color: isLoggedIn ? Colors.white : Colors.white.withValues(alpha: 0.3),
+                    width: isLoggedIn ? 1.5 : 1),
+              ),
+              child: Icon(
+                isLoggedIn ? Icons.cloud_done_rounded : Icons.cloud_off_rounded,
+                color: isLoggedIn ? Colors.white : Colors.white.withValues(alpha: 0.6), 
+                size: 18
+              ),
+            ),
+          );
+        }),
         Obx(() {
           final hasFilters =
               ctrl.filterPeriod.value != 'all' ||
@@ -335,9 +363,27 @@ class HistoryScreen extends StatelessWidget {
               export.exportCsv(allFiltered, period: ctrl.currentPeriodLabel);
             }
           },
-          itemBuilder: (_) => const [
-            PopupMenuItem(value: 'pdf', child: Text('Export PDF')),
-            PopupMenuItem(value: 'csv', child: Text('Export CSV')),
+          itemBuilder: (_) => [
+            PopupMenuItem(
+              value: 'pdf', 
+              child: Row(
+                children: [
+                  Icon(Icons.picture_as_pdf_outlined, color: AppTheme.primary, size: 20),
+                  const SizedBox(width: 12),
+                  const Text('Exporter en PDF'),
+                ],
+              )
+            ),
+            PopupMenuItem(
+              value: 'csv', 
+              child: Row(
+                children: [
+                   Icon(Icons.table_chart_outlined, color: Colors.blue[700], size: 20),
+                   const SizedBox(width: 12),
+                   const Text('Exporter en Excel'),
+                ],
+              )
+            ),
           ],
         ),
       ],

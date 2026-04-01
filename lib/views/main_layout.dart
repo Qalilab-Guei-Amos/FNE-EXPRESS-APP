@@ -20,10 +20,14 @@ class MainLayoutController extends GetxController {
 
   String get currentTitle {
     switch (currentIndex.value) {
-      case 0: return 'Tableau de Bord';
-      case 1: return 'Historique des Factures';
-      case 2: return 'Paramètres';
-      default: return 'FNE Express';
+      case 0:
+        return 'Tableau de Bord';
+      case 1:
+        return 'Historique des Factures';
+      case 2:
+        return 'Paramètres';
+      default:
+        return 'FNE Express';
     }
   }
 }
@@ -47,7 +51,7 @@ class MainLayout extends StatelessWidget {
       length: 3,
       child: Scaffold(
         backgroundColor: AppTheme.background,
-        appBar: isTablet 
+        appBar: isTablet
             ? AppBar(
                 toolbarHeight: 80,
                 elevation: 0,
@@ -59,23 +63,27 @@ class MainLayout extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        isHome ? 'Bonjour,' : controller.currentTitle, 
+                        isHome ? 'Bonjour,' : controller.currentTitle,
                         style: TextStyle(
-                          fontWeight: isHome ? FontWeight.w400 : FontWeight.w800, 
-                          fontSize: isHome ? 13 : 20, 
-                          color: Colors.white.withValues(alpha: isHome ? 0.7 : 1.0)
-                        )
+                          fontWeight: isHome
+                              ? FontWeight.w400
+                              : FontWeight.w800,
+                          fontSize: isHome ? 13 : 20,
+                          color: Colors.white.withValues(
+                            alpha: isHome ? 0.7 : 1.0,
+                          ),
+                        ),
                       ),
                       if (isHome) ...[
                         const SizedBox(height: 2),
                         Text(
-                          authCtrl.displayName, 
+                          authCtrl.displayName,
                           style: const TextStyle(
-                            color: Colors.white, 
+                            color: Colors.white,
                             fontSize: 20,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -0.5,
-                          )
+                          ),
                         ),
                       ],
                     ],
@@ -83,50 +91,117 @@ class MainLayout extends StatelessWidget {
                 }),
                 actions: [
                   Obx(() {
-                     final isLoggedIn = authCtrl.currentUser.value != null;
-                     return InkWell(
-                       onTap: () => Get.to(() => const AuthScreen()),
-                       child: Container(
-                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                         margin: const EdgeInsets.symmetric(vertical: 12),
-                         decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-                         child: Row(children: [
-                           Icon(isLoggedIn ? Icons.cloud_done_rounded : Icons.cloud_off_rounded, size: 16, color: Colors.white),
-                           const SizedBox(width: 8),
-                           Text(isLoggedIn ? 'Cloud Sync' : 'Offline', style: const TextStyle(color: Colors.white, fontSize: 12)),
-                         ]),
-                       ),
-                     );
+                    final isLoggedIn = authCtrl.currentUser.value != null;
+                    return InkWell(
+                      onTap: () => Get.to(() => const AuthScreen()),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        margin: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              isLoggedIn
+                                  ? Icons.cloud_done_rounded
+                                  : Icons.cloud_off_rounded,
+                              size: 16,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              isLoggedIn ? 'Synchronisé' : 'Hors ligne',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
                   }),
                   const SizedBox(width: 16),
                   Obx(() {
-                    if (controller.currentIndex.value != 1) return const SizedBox.shrink();
+                    if (controller.currentIndex.value != 1)
+                      return const SizedBox.shrink();
                     final histCtrl = Get.find<HistoryController>();
-                    final hasFilters = histCtrl.filterPeriod.value != 'all' || histCtrl.searchQuery.value.isNotEmpty;
-                    return Row(children: [
-                      if (hasFilters) IconButton(onPressed: histCtrl.resetFilters, icon: const Icon(Icons.filter_alt_off, size: 20, color: Colors.white70)),
-                      PopupMenuButton<String>(
-                        icon: const Icon(Icons.download_outlined, color: Colors.white),
-                        onSelected: (val) {
-                           final export = Get.find<ExportService>();
-                           final data = histCtrl.filteredRecordsByStatus(FneStatus.certifiee);
-                           if (val == 'pdf') {
-                             export.exportReportPdf(
-                               data, 
-                               title: 'RAPPORT FINANCIER', 
-                               period: histCtrl.currentPeriodLabel,
-                               landscape: true,
-                             );
-                           } else {
-                             export.exportCsv(data, period: histCtrl.currentPeriodLabel);
-                           }
-                        },
-                        itemBuilder: (_) => const [
-                          PopupMenuItem(value: 'pdf', child: Text('Exporter en PDF')),
-                          PopupMenuItem(value: 'csv', child: Text('Exporter en CSV')),
-                        ],
-                      ),
-                    ]);
+                    final hasFilters =
+                        histCtrl.filterPeriod.value != 'all' ||
+                        histCtrl.searchQuery.value.isNotEmpty;
+                    return Row(
+                      children: [
+                        if (hasFilters)
+                          IconButton(
+                            onPressed: histCtrl.resetFilters,
+                            icon: const Icon(
+                              Icons.filter_alt_off,
+                              size: 20,
+                              color: Colors.white70,
+                            ),
+                          ),
+                        PopupMenuButton<String>(
+                          icon: const Icon(
+                            Icons.download_outlined,
+                            color: Colors.white,
+                          ),
+                          onSelected: (val) {
+                            final export = Get.find<ExportService>();
+                            final data = histCtrl.filteredRecordsByStatus(
+                              FneStatus.certifiee,
+                            );
+                            if (val == 'pdf') {
+                              export.exportReportPdf(
+                                data,
+                                title: 'RAPPORT FINANCIER',
+                                period: histCtrl.currentPeriodLabel,
+                                landscape: true,
+                              );
+                            } else {
+                              export.exportCsv(
+                                data,
+                                period: histCtrl.currentPeriodLabel,
+                              );
+                            }
+                          },
+                          itemBuilder: (_) => [
+                            PopupMenuItem(
+                              value: 'pdf',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.picture_as_pdf_rounded,
+                                    color: AppTheme.primary,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Text('Exporter en PDF'),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 'csv',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.table_chart_rounded,
+                                    color: Colors.blue[700],
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Text('Exporter en Excel'),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    );
                   }),
                   const SizedBox(width: 16),
                 ],
@@ -149,25 +224,43 @@ class MainLayout extends StatelessWidget {
                         labelColor: Colors.white,
                         unselectedLabelColor: Colors.white60,
                         tabs: [
-                          Obx(() => Tab(text: 'Certifiées (${histCtrl.filteredRecordsByStatus(FneStatus.certifiee).length})')),
-                          Obx(() => Tab(text: 'Brouillons (${histCtrl.filteredRecordsByStatus(FneStatus.brouillon).length})')),
-                          Obx(() => Tab(text: 'Échecs (${histCtrl.filteredRecordsByStatus(FneStatus.echec).length})')),
+                          Obx(
+                            () => Tab(
+                              text:
+                                  'Certifiées (${histCtrl.filteredRecordsByStatus(FneStatus.certifiee).length})',
+                            ),
+                          ),
+                          Obx(
+                            () => Tab(
+                              text:
+                                  'Brouillons (${histCtrl.filteredRecordsByStatus(FneStatus.brouillon).length})',
+                            ),
+                          ),
+                          Obx(
+                            () => Tab(
+                              text:
+                                  'Échecs (${histCtrl.filteredRecordsByStatus(FneStatus.echec).length})',
+                            ),
+                          ),
                         ],
                       ),
                     );
                   }
                   return const SizedBox.shrink();
                 }),
-              
+
               Expanded(
                 child: Row(
                   children: [
-                    if (isTablet) _buildSideDrawer(context, controller, authCtrl),
+                    if (isTablet)
+                      _buildSideDrawer(context, controller, authCtrl),
                     Expanded(
-                      child: Obx(() => IndexedStack(
-                        index: controller.currentIndex.value,
-                        children: _screens,
-                      )),
+                      child: Obx(
+                        () => IndexedStack(
+                          index: controller.currentIndex.value,
+                          children: _screens,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -175,35 +268,69 @@ class MainLayout extends StatelessWidget {
             ],
           ),
         ),
-        bottomNavigationBar: isTablet ? null : Container(
-          decoration: BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -5))]),
-          child: SafeArea(
-            child: Obx(() => BottomNavigationBar(
-              currentIndex: controller.currentIndex.value,
-              onTap: (i) => controller.changeTab(i),
-              selectedItemColor: AppTheme.primary,
-              unselectedItemColor: AppTheme.textGrey.withValues(alpha: 0.5),
-              type: BottomNavigationBarType.fixed,
-              items: const [
-                BottomNavigationBarItem(icon: Icon(Icons.dashboard_rounded), label: 'Accueil'),
-                BottomNavigationBarItem(icon: Icon(Icons.history_rounded), label: 'Historique'),
-                BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), label: 'Profil'),
-              ],
-            )),
-          ),
-        ),
+        bottomNavigationBar: isTablet
+            ? null
+            : Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, -5),
+                    ),
+                  ],
+                ),
+                child: SafeArea(
+                  child: Obx(
+                    () => BottomNavigationBar(
+                      currentIndex: controller.currentIndex.value,
+                      onTap: (i) => controller.changeTab(i),
+                      selectedItemColor: AppTheme.primary,
+                      unselectedItemColor: AppTheme.textGrey.withValues(
+                        alpha: 0.5,
+                      ),
+                      type: BottomNavigationBarType.fixed,
+                      items: const [
+                        BottomNavigationBarItem(
+                          icon: Icon(Icons.dashboard_rounded),
+                          label: 'Accueil',
+                        ),
+                        BottomNavigationBarItem(
+                          icon: Icon(Icons.history_rounded),
+                          label: 'Historique',
+                        ),
+                        BottomNavigationBarItem(
+                          icon: Icon(Icons.settings_outlined),
+                          label: 'Paramètres',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
       ),
     );
   }
 
-  Widget _buildSideDrawer(BuildContext context, MainLayoutController controller, AuthController authCtrl) {
+  Widget _buildSideDrawer(
+    BuildContext context,
+    MainLayoutController controller,
+    AuthController authCtrl,
+  ) {
     return Container(
       width: 100,
       margin: const EdgeInsets.fromLTRB(16, 16, 0, 16),
       decoration: BoxDecoration(
         color: AppTheme.primary,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: AppTheme.primary.withValues(alpha: 0.25), blurRadius: 15, offset: const Offset(5, 5))],
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primary.withValues(alpha: 0.25),
+            blurRadius: 15,
+            offset: const Offset(5, 5),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -211,17 +338,27 @@ class MainLayout extends StatelessWidget {
           const Spacer(),
           _sideDrawerItem('Tableau', Icons.dashboard_rounded, 0, controller),
           _sideDrawerItem('Historique', Icons.history_rounded, 1, controller),
-          _sideDrawerItem('Profil', Icons.settings_rounded, 2, controller),
+          _sideDrawerItem('Paramètres', Icons.settings_rounded, 2, controller),
           const Spacer(),
           Obx(() {
-            if (authCtrl.currentUser.value == null) return const SizedBox.shrink();
+            if (authCtrl.currentUser.value == null)
+              return const SizedBox.shrink();
             return InkWell(
               onTap: () => authCtrl.signOut(),
-              child: const Column(children: [
-                Icon(Icons.power_settings_new_rounded, color: Colors.white70, size: 24),
-                SizedBox(height: 4),
-                Text('Déconnexion', style: TextStyle(color: Colors.white60, fontSize: 9)),
-              ]),
+              child: const Column(
+                children: [
+                  Icon(
+                    Icons.power_settings_new_rounded,
+                    color: Colors.white70,
+                    size: 24,
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Déconnexion',
+                    style: TextStyle(color: Colors.white60, fontSize: 9),
+                  ),
+                ],
+              ),
             );
           }),
           const SizedBox(height: 30),
@@ -230,7 +367,12 @@ class MainLayout extends StatelessWidget {
     );
   }
 
-  Widget _sideDrawerItem(String label, IconData icon, int index, MainLayoutController controller) {
+  Widget _sideDrawerItem(
+    String label,
+    IconData icon,
+    int index,
+    MainLayoutController controller,
+  ) {
     return Obx(() {
       final isSelected = controller.currentIndex.value == index;
       return GestureDetector(
@@ -238,16 +380,34 @@ class MainLayout extends StatelessWidget {
         child: Container(
           width: double.infinity,
           margin: const EdgeInsets.symmetric(vertical: 12),
-          child: Column(children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: isSelected ? Colors.white : Colors.transparent, borderRadius: BorderRadius.circular(15)),
-              child: Icon(icon, color: isSelected ? AppTheme.primary : Colors.white.withValues(alpha: 0.6), size: 26),
-            ),
-            const SizedBox(height: 6),
-            Text(label, style: TextStyle(color: Colors.white.withValues(alpha: isSelected ? 1 : 0.6), fontSize: 10.5, fontWeight: isSelected ? FontWeight.bold : FontWeight.w400)),
-          ]),
+          child: Column(
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isSelected ? Colors.white : Colors.transparent,
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Icon(
+                  icon,
+                  color: isSelected
+                      ? AppTheme.primary
+                      : Colors.white.withValues(alpha: 0.6),
+                  size: 26,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: isSelected ? 1 : 0.6),
+                  fontSize: 10.5,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w400,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     });

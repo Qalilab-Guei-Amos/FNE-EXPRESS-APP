@@ -101,6 +101,30 @@ class AuthController extends GetxController {
     }
   }
 
+  Future<void> verifyAndChangePassword(String oldPassword, String newPassword) async {
+    isLoading.value = true;
+    try {
+      // 1. Vérifier si l'ancien mot de passe est correct en essayant une reconnexion
+      await _supabase.auth.signInWithPassword(
+        email: currentUser.value!.email!,
+        password: oldPassword,
+      );
+
+      // 2. Si ça passe, on met à jour vers le nouveau
+      await _supabase.auth.updateUser(
+        UserAttributes(password: newPassword),
+      );
+      
+      _showSuccess('Mot de passe mis à jour avec succès ✅');
+    } on AuthException catch (e) {
+      _showError('Vérification échouée : ${e.message}');
+    } catch (e) {
+      _showError('Erreur lors du changement de mot de passe');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   Future<void> signOut() async {
     isLoading.value = true;
     try {

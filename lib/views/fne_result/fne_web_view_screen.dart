@@ -233,7 +233,7 @@ class _FneWebViewScreenState extends State<FneWebViewScreen> {
       type: ToastificationType.error,
       title: const Text('Erreur de téléchargement'),
       description: Text(message),
-      autoCloseDuration: const Duration(seconds: 5),
+      autoCloseDuration: const Duration(seconds: 3),
     );
   }
 
