@@ -198,7 +198,7 @@ class HistoryScreen extends StatelessWidget {
                 R.hPad(context),
                 4,
                 R.hPad(context),
-                6,
+                2,
               ),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
@@ -324,10 +324,11 @@ class HistoryScreen extends StatelessWidget {
               FneStatus.certifiee,
             );
             final export = Get.find<ExportService>();
-            if (value == 'pdf')
+            if (value == 'pdf') {
               export.exportReportPdf(allFiltered, title: 'Rapport FNE');
-            else if (value == 'csv')
+            } else if (value == 'csv') {
               export.exportCsv(allFiltered);
+            }
           },
           itemBuilder: (_) => const [
             PopupMenuItem(value: 'pdf', child: Text('Export PDF')),
@@ -459,21 +460,177 @@ class _PeriodDialog extends StatelessWidget {
               label: 'Plage libre',
               icon: Icons.date_range,
               selected: ctrl.filterPeriod.value == 'custom',
-              onTap: () async {
-                final res = await showDateRangePicker(
+              onTap: () {
+                Get.back(); // Ferme le dialogue de période
+                showDialog(
                   context: context,
-                  firstDate: DateTime(2023),
-                  lastDate: DateTime(2030),
-                  locale: const Locale('fr', 'FR'),
+                  builder: (_) => _CustomDateRangeDialog(ctrl: ctrl),
                 );
-                if (res != null) {
-                  ctrl.customStart.value = res.start;
-                  ctrl.customEnd.value = res.end;
-                  ctrl.filterPeriod.value = 'custom';
-                  Get.back();
-                }
               },
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CustomDateRangeDialog extends StatefulWidget {
+  final HistoryController ctrl;
+  const _CustomDateRangeDialog({required this.ctrl});
+
+  @override
+  State<_CustomDateRangeDialog> createState() => _CustomDateRangeDialogState();
+}
+
+class _CustomDateRangeDialogState extends State<_CustomDateRangeDialog> {
+  DateTime? _start;
+  DateTime? _end;
+
+  @override
+  void initState() {
+    super.initState();
+    _start = widget.ctrl.customStart.value;
+    _end = widget.ctrl.customEnd.value;
+  }
+
+  Future<void> _pickDate(bool isStart) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: (isStart ? _start : _end) ?? DateTime.now(),
+      firstDate: DateTime(2026),
+      lastDate: DateTime.now(),
+      locale: const Locale('fr', 'FR'),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.light(primary: AppTheme.primary),
+        ),
+        child: child!,
+      ),
+    );
+
+    if (picked != null) {
+      setState(() {
+        if (isStart) {
+          _start = picked;
+          // Si la fin était avant le nouveau début, on la réinitialise
+          if (_end != null && _end!.isBefore(_start!)) _end = null;
+        } else {
+          _end = picked;
+          if (_start != null && _start!.isAfter(_end!)) _start = null;
+        }
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: const Color(0xFFE9EEE8), // Fond vert très clair comme l'image
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Plage de dates',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1A1C19)),
+            ),
+            const SizedBox(height: 24),
+            
+            _DateRow(
+              label: 'Date début', 
+              date: _start, 
+              onTap: () => _pickDate(true)
+            ),
+            const SizedBox(height: 12),
+            _DateRow(
+              label: 'Date fin', 
+              date: _end, 
+              onTap: () => _pickDate(false)
+            ),
+            
+            const SizedBox(height: 32),
+            
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Get.back(),
+                  child: const Text('Annuler', style: TextStyle(color: Color(0xFF424940), fontWeight: FontWeight.bold, fontSize: 16)),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton(
+                  onPressed: (_start != null && _end != null) ? () {
+                    widget.ctrl.customStart.value = _start;
+                    widget.ctrl.customEnd.value = _end;
+                    widget.ctrl.filterPeriod.value = 'custom';
+                    Get.back();
+                  } : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: AppTheme.primary.withValues(alpha: 0.3),
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: const Text('Appliquer', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DateRow extends StatelessWidget {
+  final String label;
+  final DateTime? date;
+  final VoidCallback onTap;
+
+  const _DateRow({required this.label, required this.date, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasDate = date != null;
+    final String dateStr = hasDate 
+        ? '${date!.day.toString().padLeft(2, '0')}/${date!.month.toString().padLeft(2, '0')}/${date!.year}'
+        : 'Sélectionner';
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: hasDate ? AppTheme.primary.withValues(alpha: 0.08) : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: hasDate ? AppTheme.primary.withValues(alpha: 0.3) : const Color(0xFFC2C8BC)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.calendar_today_outlined, size: 20, color: hasDate ? AppTheme.primary : const Color(0xFF424940)),
+            const SizedBox(width: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF424940))),
+                Text(
+                  dateStr, 
+                  style: TextStyle(
+                    fontSize: 16, 
+                    fontWeight: FontWeight.w600, 
+                    color: hasDate ? AppTheme.primary : const Color(0xFF72796F)
+                  )
+                ),
+              ],
+            ),
+            const Spacer(),
+            Icon(Icons.chevron_right, size: 20, color: hasDate ? AppTheme.primary : const Color(0xFF72796F)),
           ],
         ),
       ),
