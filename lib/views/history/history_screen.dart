@@ -35,6 +35,7 @@ class HistoryScreen extends StatelessWidget {
                 'Historique des factures',
                 style: TextStyle(fontSize: R.fs(context, 18)),
               ),
+              toolbarHeight: 64,
               actions: [
                 _buildHeaderActions(ctrl, context),
                 SizedBox(width: R.hPad(context) - 16),
@@ -129,6 +130,72 @@ class HistoryScreen extends StatelessWidget {
                     ),
                   );
                 }),
+                const SizedBox(width: 8),
+                PopupMenuButton<String>(
+                  tooltip: 'Exporter',
+                  offset: const Offset(0, 50),
+                  onSelected: (value) {
+                    final allFiltered = ctrl.filteredRecordsByStatus(
+                      FneStatus.certifiee,
+                    );
+                    final export = Get.find<ExportService>();
+                    if (value == 'pdf') {
+                      export.exportReportPdf(
+                        allFiltered, 
+                        title: 'RAPPORT FINANCIER', 
+                        period: ctrl.currentPeriodLabel,
+                        landscape: true,
+                      );
+                    } else if (value == 'csv') {
+                      export.exportCsv(allFiltered, period: ctrl.currentPeriodLabel);
+                    }
+                  },
+                  itemBuilder: (_) => [
+                    PopupMenuItem(
+                      value: 'pdf', 
+                      child: Row(
+                        children: [
+                          const Icon(Icons.picture_as_pdf_outlined, color: AppTheme.primary, size: 20),
+                          const SizedBox(width: 12),
+                          const Text('Exporter en PDF'),
+                        ],
+                      )
+                    ),
+                    PopupMenuItem(
+                      value: 'csv', 
+                      child: Row(
+                        children: [
+                           Icon(Icons.table_chart_outlined, color: Colors.blue[700], size: 20),
+                           const SizedBox(width: 12),
+                           const Text('Exporter en Excel'),
+                        ],
+                      )
+                    ),
+                  ],
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 10,
+                        ),
+                      ],
+                      border: Border.all(
+                        color: AppTheme.divider,
+                        width: 1.2,
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.download_rounded,
+                      size: 20,
+                      color: AppTheme.textGrey,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -311,8 +378,8 @@ class HistoryScreen extends StatelessWidget {
           return GestureDetector(
             onTap: () => Get.to(() => const AuthScreen()),
             child: Container(
-              margin: const EdgeInsets.only(right: 6),
-              padding: const EdgeInsets.all(7),
+              margin: const EdgeInsets.only(right: 16),
+          padding: const EdgeInsets.all(9),
               decoration: BoxDecoration(
                 color: isLoggedIn 
                     ? Colors.white.withValues(alpha: 0.25)
@@ -330,62 +397,6 @@ class HistoryScreen extends StatelessWidget {
             ),
           );
         }),
-        Obx(() {
-          final hasFilters =
-              ctrl.filterPeriod.value != 'all' ||
-              ctrl.searchQuery.value.isNotEmpty;
-          if (!hasFilters) return const SizedBox.shrink();
-          return IconButton(
-            onPressed: ctrl.resetFilters,
-            icon: const Icon(
-              Icons.filter_alt_off,
-              size: 18,
-              color: Colors.white70,
-            ),
-          );
-        }),
-        PopupMenuButton<String>(
-          icon: const Icon(Icons.download_outlined, color: Colors.white),
-          tooltip: 'Exporter',
-          onSelected: (value) {
-            final allFiltered = ctrl.filteredRecordsByStatus(
-              FneStatus.certifiee,
-            );
-            final export = Get.find<ExportService>();
-            if (value == 'pdf') {
-              export.exportReportPdf(
-                allFiltered, 
-                title: 'RAPPORT FINANCIER', 
-                period: ctrl.currentPeriodLabel,
-                landscape: true,
-              );
-            } else if (value == 'csv') {
-              export.exportCsv(allFiltered, period: ctrl.currentPeriodLabel);
-            }
-          },
-          itemBuilder: (_) => [
-            PopupMenuItem(
-              value: 'pdf', 
-              child: Row(
-                children: [
-                  Icon(Icons.picture_as_pdf_outlined, color: AppTheme.primary, size: 20),
-                  const SizedBox(width: 12),
-                  const Text('Exporter en PDF'),
-                ],
-              )
-            ),
-            PopupMenuItem(
-              value: 'csv', 
-              child: Row(
-                children: [
-                   Icon(Icons.table_chart_outlined, color: Colors.blue[700], size: 20),
-                   const SizedBox(width: 12),
-                   const Text('Exporter en Excel'),
-                ],
-              )
-            ),
-          ],
-        ),
       ],
     );
   }

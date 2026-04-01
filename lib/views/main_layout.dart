@@ -8,7 +8,6 @@ import 'history/history_screen.dart';
 import 'settings/settings_screen.dart';
 import 'auth/auth_screen.dart';
 import '../controllers/history_controller.dart';
-import '../services/export_service.dart';
 import '../models/fne_record.dart';
 
 class MainLayoutController extends GetxController {
@@ -124,83 +123,6 @@ class MainLayout extends StatelessWidget {
                           ],
                         ),
                       ),
-                    );
-                  }),
-                  const SizedBox(width: 16),
-                  Obx(() {
-                    if (controller.currentIndex.value != 1)
-                      return const SizedBox.shrink();
-                    final histCtrl = Get.find<HistoryController>();
-                    final hasFilters =
-                        histCtrl.filterPeriod.value != 'all' ||
-                        histCtrl.searchQuery.value.isNotEmpty;
-                    return Row(
-                      children: [
-                        if (hasFilters)
-                          IconButton(
-                            onPressed: histCtrl.resetFilters,
-                            icon: const Icon(
-                              Icons.filter_alt_off,
-                              size: 20,
-                              color: Colors.white70,
-                            ),
-                          ),
-                        PopupMenuButton<String>(
-                          icon: const Icon(
-                            Icons.download_outlined,
-                            color: Colors.white,
-                          ),
-                          onSelected: (val) {
-                            final export = Get.find<ExportService>();
-                            final data = histCtrl.filteredRecordsByStatus(
-                              FneStatus.certifiee,
-                            );
-                            if (val == 'pdf') {
-                              export.exportReportPdf(
-                                data,
-                                title: 'RAPPORT FINANCIER',
-                                period: histCtrl.currentPeriodLabel,
-                                landscape: true,
-                              );
-                            } else {
-                              export.exportCsv(
-                                data,
-                                period: histCtrl.currentPeriodLabel,
-                              );
-                            }
-                          },
-                          itemBuilder: (_) => [
-                            PopupMenuItem(
-                              value: 'pdf',
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.picture_as_pdf_rounded,
-                                    color: AppTheme.primary,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  const Text('Exporter en PDF'),
-                                ],
-                              ),
-                            ),
-                            PopupMenuItem(
-                              value: 'csv',
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.table_chart_rounded,
-                                    color: Colors.blue[700],
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  const Text('Exporter en Excel'),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
                     );
                   }),
                   const SizedBox(width: 16),
@@ -341,8 +263,9 @@ class MainLayout extends StatelessWidget {
           _sideDrawerItem('Paramètres', Icons.settings_rounded, 2, controller),
           const Spacer(),
           Obx(() {
-            if (authCtrl.currentUser.value == null)
+            if (authCtrl.currentUser.value == null) {
               return const SizedBox.shrink();
+            }
             return InkWell(
               onTap: () => authCtrl.signOut(),
               child: const Column(

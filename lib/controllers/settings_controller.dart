@@ -13,6 +13,9 @@ class SettingsController extends GetxController {
   late TextEditingController commercialMessageCtrl;
   late TextEditingController footerCtrl;
   
+  // Mode édition
+  final RxBool isEditMode = false.obs;
+
   // Préférences par défaut
   final RxString defaultPaymentMethod = 'espèces'.obs;
   final RxString defaultTemplate = 'B2B'.obs;
