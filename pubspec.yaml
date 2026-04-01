@@ -24,7 +24,7 @@ dependencies:
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   image_picker: ^1.1.2
-  share_plus: ^10.0.0
+  share_plus: 7.2.2
   intl: 0.20.2
   path_provider: ^2.1.4
   permission_handler: ^11.3.1
@@ -35,6 +35,9 @@ dependencies:
   flutter_sharing_intent: ^1.1.1
   flutter_native_splash: ^2.4.7
   url_launcher: ^6.3.1
+  pdf: ^3.11.0
+  printing: ^5.13.0
+  to_csv: ^6.0.1
 
 dev_dependencies:
   flutter_test:

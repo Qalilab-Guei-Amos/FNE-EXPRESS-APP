@@ -9,10 +9,19 @@ class FneCard extends StatelessWidget {
   final VoidCallback onTap;
   const FneCard({super.key, required this.record, required this.onTap});
 
+  Color get _accentColor {
+    switch (record.status) {
+      case FneStatus.brouillon:
+        return Colors.orange;
+      case FneStatus.echec:
+        return Colors.red.shade400;
+      case FneStatus.certifiee:
+        return AppTheme.primary;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isValidated = record.fneNumber != null;
-    final accentColor = isValidated ? AppTheme.primary : AppTheme.primary;
     final radius = R.radius(context);
 
     return Material(
@@ -41,19 +50,19 @@ class FneCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // ── Bande accent gauche ───────────────────────────
-                  Container(width: 4, color: accentColor),
+                  Container(width: 4, color: _accentColor),
 
                   // ── Contenu ───────────────────────────────────────
                   Expanded(
                     child: Padding(
                       padding: EdgeInsets.symmetric(
                         horizontal: R.isTablet(context) ? 18 : 14,
-                        vertical: R.isTablet(context) ? 14 : 14,
+                        vertical: 14,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // ── Ligne supérieure : icône + infos ──────
+                          // ── Ligne supérieure ──────────────────────
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -63,8 +72,8 @@ class FneCard extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     colors: [
-                                      AppTheme.primary.withValues(alpha: 0.14),
-                                      AppTheme.primary.withValues(alpha: 0.04),
+                                      _accentColor.withValues(alpha: 0.14),
+                                      _accentColor.withValues(alpha: 0.04),
                                     ],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
@@ -72,7 +81,7 @@ class FneCard extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(11),
                                 ),
                                 child: Icon(Icons.receipt_long,
-                                    color: AppTheme.primary,
+                                    color: _accentColor,
                                     size: R.icon(context, 21)),
                               ),
                               SizedBox(width: R.isTablet(context) ? 14 : 12),
@@ -97,22 +106,10 @@ class FneCard extends StatelessWidget {
                                         fontSize: R.fs(context, 11),
                                       ),
                                     ),
-                                    if (record.fneNumber != null) ...[
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        record.fneNumber!,
-                                        style: TextStyle(
-                                          color: AppTheme.primary
-                                              .withValues(alpha: 0.75),
-                                          fontSize: R.fs(context, 10.5),
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
                                   ],
                                 ),
                               ),
+                              _StatusDot(status: record.status),
                             ],
                           ),
 
@@ -130,7 +127,7 @@ class FneCard extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 7),
                             decoration: BoxDecoration(
-                              color: AppTheme.primary,
+                              color: _accentColor,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
@@ -170,5 +167,32 @@ class FneCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Petit point coloré discret pour la home (espace limité)
+class _StatusDot extends StatelessWidget {
+  final FneStatus status;
+  const _StatusDot({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final Color color;
+    final IconData icon;
+    switch (status) {
+      case FneStatus.brouillon:
+        color = Colors.orange;
+        icon = Icons.edit_note_outlined;
+        break;
+      case FneStatus.echec:
+        color = Colors.red.shade400;
+        icon = Icons.error_outline;
+        break;
+      case FneStatus.certifiee:
+        color = Colors.green.shade600;
+        icon = Icons.verified_outlined;
+        break;
+    }
+    return Icon(icon, size: R.icon(context, 16), color: color);
   }
 }

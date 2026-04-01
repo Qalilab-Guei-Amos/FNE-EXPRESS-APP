@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../../controllers/history_controller.dart';
 import '../../../core/utils/responsive.dart';
+import '../../../models/fne_record.dart';
 
 Future<bool?> showDeleteDialog(
-    BuildContext context, HistoryController ctrl, String id) {
+    BuildContext context, HistoryController ctrl, FneRecord record) {
   return showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:share_plus/share_plus.dart';
 import 'fne_web_view_screen.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/responsive.dart';
 import '../../models/fne_record.dart';
+import '../../services/export_service.dart';
 
 class FneResultScreen extends StatelessWidget {
   final FneRecord record;
@@ -37,25 +37,18 @@ class FneResultScreen extends StatelessWidget {
         ),
         child: R.centered(context,
             child: isTablet
-                ? _TabletLayout(record: record, onShare: _share)
-                : _MobileLayout(record: record, onShare: _share)),
+                ? _TabletLayout(record: record, onShare: _share, onExportPdf: _exportPdf)
+                : _MobileLayout(record: record, onShare: _share, onExportPdf: _exportPdf)),
       ),
     );
   }
 
   void _share() {
-    final lines = [
-      'FNE Express — Facture Normalisée Électronique',
-      'Client : ${record.clientName}',
-      'Numéro FNE : ${record.fneNumber ?? 'N/A'}',
-      'Date : ${AppFormatters.date(record.createdAt)}',
-      'Total TTC : ${AppFormatters.currency(record.totalTTC)}',
-      if (record.qrCode != null) ...[
-        '',
-        'Vérifier la facture : ${record.qrCode}',
-      ],
-    ];
-    Share.share(lines.join('\n'), subject: 'FNE — ${record.clientName}');
+    Get.find<ExportService>().shareFne(record);
+  }
+
+  void _exportPdf() {
+    Get.find<ExportService>().exportFnePdf(record);
   }
 }
 
@@ -63,7 +56,8 @@ class FneResultScreen extends StatelessWidget {
 class _TabletLayout extends StatelessWidget {
   final FneRecord record;
   final VoidCallback onShare;
-  const _TabletLayout({required this.record, required this.onShare});
+  final VoidCallback onExportPdf;
+  const _TabletLayout({required this.record, required this.onShare, required this.onExportPdf});
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +86,7 @@ class _TabletLayout extends StatelessWidget {
           ],
         ),
         SizedBox(height: R.gap(context) * 1.5),
-        _ActionButtons(onShare: onShare),
+        _ActionButtons(onShare: onShare, onExportPdf: onExportPdf),
         const SizedBox(height: 40),
       ],
     );
@@ -103,7 +97,8 @@ class _TabletLayout extends StatelessWidget {
 class _MobileLayout extends StatelessWidget {
   final FneRecord record;
   final VoidCallback onShare;
-  const _MobileLayout({required this.record, required this.onShare});
+  final VoidCallback onExportPdf;
+  const _MobileLayout({required this.record, required this.onShare, required this.onExportPdf});
 
   @override
   Widget build(BuildContext context) {
@@ -117,7 +112,7 @@ class _MobileLayout extends StatelessWidget {
         ],
         _DetailsCard(record: record),
         SizedBox(height: R.gap(context) * 1.5),
-        _ActionButtons(onShare: onShare),
+        _ActionButtons(onShare: onShare, onExportPdf: onExportPdf),
         const SizedBox(height: 40),
       ],
     );
@@ -362,41 +357,56 @@ class _DetailRow extends StatelessWidget {
 // ── Boutons d'action ──────────────────────────────────────────────────────────
 class _ActionButtons extends StatelessWidget {
   final VoidCallback onShare;
-  const _ActionButtons({required this.onShare});
+  final VoidCallback onExportPdf;
+  const _ActionButtons({required this.onShare, required this.onExportPdf});
 
   @override
   Widget build(BuildContext context) {
     final isTablet = R.isTablet(context);
-    return Row(
+    final vPad = EdgeInsets.symmetric(vertical: isTablet ? 16 : 14);
+    return Column(
       children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: onShare,
-            icon: Icon(Icons.share, size: R.icon(context, 20)),
-            label: Text('Partager',
-                style: TextStyle(fontSize: R.fs(context, 15))),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppTheme.primary,
-              side: const BorderSide(color: AppTheme.primary),
-              padding:
-                  EdgeInsets.symmetric(vertical: isTablet ? 16 : 14),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: onShare,
+                icon: Icon(Icons.share, size: R.icon(context, 20)),
+                label: Text('Partager',
+                    style: TextStyle(fontSize: R.fs(context, 15))),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.primary,
+                  side: const BorderSide(color: AppTheme.primary),
+                  padding: vPad,
+                ),
+              ),
             ),
-          ),
+            SizedBox(width: R.gap(context)),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: onExportPdf,
+                icon: Icon(Icons.picture_as_pdf_outlined,
+                    size: R.icon(context, 20)),
+                label: Text('Export PDF',
+                    style: TextStyle(fontSize: R.fs(context, 15))),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.primary,
+                  side: const BorderSide(color: AppTheme.primary),
+                  padding: vPad,
+                ),
+              ),
+            ),
+          ],
         ),
-        SizedBox(width: R.gap(context)),
-        Expanded(
+        SizedBox(height: R.gap(context) * 0.8),
+        SizedBox(
+          width: double.infinity,
           child: ElevatedButton.icon(
-            onPressed: () {
-              int count = 0;
-              Get.until((_) => count++ >= 3);
-            },
+            onPressed: () => Get.until((r) => r.isFirst),
             icon: Icon(Icons.home, size: R.icon(context, 20)),
             label: Text('Accueil',
                 style: TextStyle(fontSize: R.fs(context, 15))),
-            style: ElevatedButton.styleFrom(
-              padding:
-                  EdgeInsets.symmetric(vertical: isTablet ? 16 : 14),
-            ),
+            style: ElevatedButton.styleFrom(padding: vPad),
           ),
         ),
       ],

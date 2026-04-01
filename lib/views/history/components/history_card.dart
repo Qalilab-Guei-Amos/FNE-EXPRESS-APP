@@ -16,10 +16,19 @@ class HistoryCard extends StatelessWidget {
     required this.onDelete,
   });
 
+  Color get _accentColor {
+    switch (record.status) {
+      case FneStatus.brouillon:
+        return Colors.orange;
+      case FneStatus.echec:
+        return Colors.red.shade400;
+      case FneStatus.certifiee:
+        return AppTheme.primary;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isValidated = record.fneNumber != null;
-    final accentColor = isValidated ? AppTheme.primary : AppTheme.accent;
     final radius = R.radius(context);
 
     return Material(
@@ -48,19 +57,19 @@ class HistoryCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // ── Bande accent gauche ───────────────────────────
-                  Container(width: 4, color: accentColor),
+                  Container(width: 4, color: _accentColor),
 
                   // ── Contenu ───────────────────────────────────────
                   Expanded(
                     child: Padding(
                       padding: EdgeInsets.symmetric(
                         horizontal: R.isTablet(context) ? 18 : 14,
-                        vertical: R.isTablet(context) ? 14 : 14,
+                        vertical: 14,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // ── Ligne supérieure : icône + infos + delete ──
+                          // ── Ligne supérieure ──────────────────────
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -70,8 +79,8 @@ class HistoryCard extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     colors: [
-                                      AppTheme.primary.withValues(alpha: 0.14),
-                                      AppTheme.primary.withValues(alpha: 0.04),
+                                      _accentColor.withValues(alpha: 0.14),
+                                      _accentColor.withValues(alpha: 0.04),
                                     ],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
@@ -79,7 +88,7 @@ class HistoryCard extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Icon(Icons.receipt_long,
-                                    color: AppTheme.primary,
+                                    color: _accentColor,
                                     size: R.icon(context, 22)),
                               ),
                               SizedBox(width: R.isTablet(context) ? 16 : 12),
@@ -120,16 +129,26 @@ class HistoryCard extends StatelessWidget {
                                   ],
                                 ),
                               ),
-                              if (onDelete != null)
-                                GestureDetector(
-                                  onTap: onDelete,
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(left: 8),
-                                    child: Icon(Icons.delete_outline,
-                                        color: Colors.red.shade300,
-                                        size: R.icon(context, 20)),
-                                  ),
-                                ),
+                              // ── Badge statut + delete ─────────────
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  _StatusBadge(status: record.status),
+                                  if (onDelete != null &&
+                                      record.status != FneStatus.certifiee) ...[
+                                    const SizedBox(height: 6),
+                                    GestureDetector(
+                                      onTap: onDelete,
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(left: 4),
+                                        child: Icon(Icons.delete_outline,
+                                            color: Colors.red.shade300,
+                                            size: R.icon(context, 20)),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
                             ],
                           ),
 
@@ -147,7 +166,7 @@ class HistoryCard extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 7),
                             decoration: BoxDecoration(
-                              color: AppTheme.primary,
+                              color: _accentColor,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
@@ -186,6 +205,42 @@ class HistoryCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  final FneStatus status;
+  const _StatusBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final Color color;
+    final IconData icon;
+
+    switch (status) {
+      case FneStatus.brouillon:
+        color = Colors.orange;
+        icon = Icons.edit_note_outlined;
+        break;
+      case FneStatus.echec:
+        color = Colors.red.shade400;
+        icon = Icons.error_outline;
+        break;
+      case FneStatus.certifiee:
+        color = Colors.green.shade600;
+        icon = Icons.verified_outlined;
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        shape: BoxShape.circle,
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
+      ),
+      child: Icon(icon, size: 13, color: color),
     );
   }
 }

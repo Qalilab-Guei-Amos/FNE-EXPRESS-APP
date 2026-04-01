@@ -53,16 +53,7 @@ class StorageService extends GetxService {
   Future<void> updateFnePdfPath(String id, String pdfPath) async {
     final record = getFneById(id);
     if (record == null) return;
-    await saveFne(FneRecord(
-      id: record.id,
-      createdAt: record.createdAt,
-      clientName: record.clientName,
-      totalTTC: record.totalTTC,
-      fneNumber: record.fneNumber,
-      qrCode: record.qrCode,
-      pdfPath: pdfPath,
-      invoice: record.invoice,
-    ));
+    await saveFne(record.copyWith(pdfPath: pdfPath));
   }
 
   bool get hasSeenWelcome => _settingsBox.get(_welcomeKey) == 'true';

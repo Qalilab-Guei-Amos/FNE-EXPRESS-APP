@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../../controllers/settings_controller.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/responsive.dart';
+import '../../history/history_screen.dart';
 
 class DashboardHeader extends StatelessWidget {
   final SettingsController settingsCtrl;
@@ -41,13 +43,48 @@ class DashboardHeader extends StatelessWidget {
               ),
             ],
           ),
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.person_outline_rounded, color: Colors.white, size: 18),
+          GestureDetector(
+            onTap: () => Get.to(() => const HistoryScreen()),
+            child: R.isTablet(context)
+                ? Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.3),
+                          width: 1),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.history_rounded,
+                            color: Colors.white, size: 16),
+                        SizedBox(width: 6),
+                        Text(
+                          'Historique',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : Container(
+                    padding: const EdgeInsets.all(9),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.3),
+                          width: 1),
+                    ),
+                    child: const Icon(Icons.history_rounded,
+                        color: Colors.white, size: 18),
+                  ),
           ),
         ],
       ),

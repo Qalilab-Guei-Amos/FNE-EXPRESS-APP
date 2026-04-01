@@ -9,11 +9,13 @@ import '../home/home_screen.dart';
 class FnePdfViewScreen extends StatefulWidget {
   final String path;
   final String title;
+  final bool fromHistory;
 
   const FnePdfViewScreen({
     super.key,
     required this.path,
     this.title = 'Facture certifiée FNE',
+    this.fromHistory = false,
   });
 
   @override
@@ -39,7 +41,13 @@ class _FnePdfViewScreenState extends State<FnePdfViewScreen> {
     super.dispose();
   }
 
-  void _goHome() => Get.offAll(() => const HomeScreen());
+  void _goHome() {
+    if (widget.fromHistory) {
+      Get.back();
+    } else {
+      Get.offAll(() => const HomeScreen());
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
