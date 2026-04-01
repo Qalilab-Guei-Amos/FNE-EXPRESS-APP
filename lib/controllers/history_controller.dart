@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:toastification/toastification.dart';
 import '../models/fne_record.dart';
 import '../services/storage_service.dart';
@@ -140,6 +141,31 @@ class HistoryController extends GetxController {
 
       return true;
     }).toList();
+  }
+
+  String get currentPeriodLabel {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final fmt = DateFormat('dd/MM/yyyy');
+
+    switch (filterPeriod.value) {
+      case 'today': 
+        return 'Le ${fmt.format(now)}';
+      case 'week': 
+        final weekStart = today.subtract(Duration(days: today.weekday - 1));
+        return 'Du ${fmt.format(weekStart)} au ${fmt.format(now)}';
+      case 'month': 
+        final monthStart = DateTime(now.year, now.month, 1);
+        return 'Du ${fmt.format(monthStart)} au ${fmt.format(now)}';
+      case 'custom':
+        if (customStart.value != null && customEnd.value != null) {
+          final s = fmt.format(customStart.value!);
+          final e = fmt.format(customEnd.value!);
+          return 'Du $s au $e';
+        }
+        return 'Période personnalisée';
+      default: return 'Toutes les factures certifiées';
+    }
   }
 
   /// CA certifié des enregistrements filtrés (période + recherche).

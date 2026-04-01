@@ -6,6 +6,7 @@ class AuthTextField extends StatefulWidget {
   final String label;
   final IconData icon;
   final bool obscure;
+  final bool enabled;
 
   const AuthTextField({
     super.key,
@@ -13,6 +14,7 @@ class AuthTextField extends StatefulWidget {
     required this.label,
     required this.icon,
     this.obscure = false,
+    this.enabled = true,
   });
 
   @override
@@ -33,6 +35,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
     return TextFormField(
       controller: widget.controller,
       obscureText: _obscureText,
+      enabled: widget.enabled,
       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
       decoration: InputDecoration(
         labelText: widget.label,

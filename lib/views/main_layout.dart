@@ -22,7 +22,7 @@ class MainLayoutController extends GetxController {
     switch (currentIndex.value) {
       case 0: return 'Tableau de Bord';
       case 1: return 'Historique des Factures';
-      case 2: return 'Paramètres du Profil';
+      case 2: return 'Paramètres';
       default: return 'FNE Express';
     }
   }
@@ -110,8 +110,16 @@ class MainLayout extends StatelessWidget {
                         onSelected: (val) {
                            final export = Get.find<ExportService>();
                            final data = histCtrl.filteredRecordsByStatus(FneStatus.certifiee);
-                           if (val == 'pdf') export.exportReportPdf(data, title: 'Rapport financier');
-                           else export.exportCsv(data);
+                           if (val == 'pdf') {
+                             export.exportReportPdf(
+                               data, 
+                               title: 'RAPPORT FINANCIER', 
+                               period: histCtrl.currentPeriodLabel,
+                               landscape: true,
+                             );
+                           } else {
+                             export.exportCsv(data, period: histCtrl.currentPeriodLabel);
+                           }
                         },
                         itemBuilder: (_) => const [
                           PopupMenuItem(value: 'pdf', child: Text('Exporter en PDF')),

@@ -38,6 +38,7 @@ dependencies:
   pdf: ^3.11.0
   printing: ^5.13.0
   to_csv: ^6.0.1
+  syncfusion_flutter_xlsio: ^28.1.33
   supabase_flutter: ^2.12.2
 
 

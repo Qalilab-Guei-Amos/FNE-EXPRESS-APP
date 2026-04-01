@@ -14,8 +14,19 @@ class SettingsController extends GetxController {
   late TextEditingController commercialMessageCtrl;
   late TextEditingController footerCtrl;
   // Préférences par défaut
+  // Préférences par défaut
   final RxString defaultPaymentMethod = 'mobile-money'.obs;
   final RxString defaultTemplate = 'B2B'.obs;
+  
+  // État d'édition
+  final RxBool isEditing = false.obs;
+
+  void toggleEditing() {
+    isEditing.value = !isEditing.value;
+    if (!isEditing.value) {
+      _loadSettings(); // Annuler : on recharge les données originales
+    }
+  }
 
   @override
   void onInit() {
@@ -40,7 +51,7 @@ class SettingsController extends GetxController {
 
   void _loadSettings() {
     establishmentCtrl.text = 'AMANI DIGITAL SERVICES';
-    pointOfSaleCtrl.text = 'ABIDJAN_PLATEAU_01';
+    pointOfSaleCtrl.text = 'AMANI DIGITAL SERVICES';
     sellerNameCtrl.text = 'AMANI';
     commercialMessageCtrl.text = 'Merci de votre confiance. Appli Générée par FNE Express.';
     footerCtrl.text = 'SOCIÉTÉ ANONYME AU CAPITAL DE 10.000.000 FCFA';

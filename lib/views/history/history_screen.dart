@@ -325,9 +325,14 @@ class HistoryScreen extends StatelessWidget {
             );
             final export = Get.find<ExportService>();
             if (value == 'pdf') {
-              export.exportReportPdf(allFiltered, title: 'Rapport FNE');
+              export.exportReportPdf(
+                allFiltered, 
+                title: 'RAPPORT FINANCIER', 
+                period: ctrl.currentPeriodLabel,
+                landscape: true,
+              );
             } else if (value == 'csv') {
-              export.exportCsv(allFiltered);
+              export.exportCsv(allFiltered, period: ctrl.currentPeriodLabel);
             }
           },
           itemBuilder: (_) => const [
@@ -409,9 +414,11 @@ class _PeriodDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -471,6 +478,7 @@ class _PeriodDialog extends StatelessWidget {
           ],
         ),
       ),
+      ),
     );
   }
 }
@@ -528,9 +536,11 @@ class _CustomDateRangeDialogState extends State<_CustomDateRangeDialog> {
     return Dialog(
       backgroundColor: const Color(0xFFE9EEE8), // Fond vert très clair comme l'image
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -583,6 +593,7 @@ class _CustomDateRangeDialogState extends State<_CustomDateRangeDialog> {
             ),
           ],
         ),
+      ),
       ),
     );
   }
