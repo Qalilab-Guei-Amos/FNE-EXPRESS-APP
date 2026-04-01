@@ -7,12 +7,12 @@ import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:toastification/toastification.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import '../main_layout.dart';
 import '../../controllers/history_controller.dart';
 import '../../services/storage_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/responsive.dart';
 import 'fne_pdf_view_screen.dart';
-import '../home/home_screen.dart';
 
 class FneWebViewScreen extends StatefulWidget {
   final String url;
@@ -237,7 +237,7 @@ class _FneWebViewScreenState extends State<FneWebViewScreen> {
     );
   }
 
-  void _goHome() => Get.offAll(() => const HomeScreen());
+  void _goHome() => Get.offAll(() => const MainLayout());
 
   @override
   Widget build(BuildContext context) {

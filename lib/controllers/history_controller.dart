@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:toastification/toastification.dart';
 import '../models/fne_record.dart';
 import '../services/storage_service.dart';
+import '../services/supabase_service.dart';
 import '../views/acquisition/acquisition_screen.dart';
 import '../views/validation/validation_screen.dart';
 import 'validation_controller.dart';
@@ -34,7 +35,20 @@ class HistoryController extends GetxController {
   }
 
   void loadRecords() {
-    records.value = Get.find<StorageService>().getAllFne();
+    final allRecords = Get.find<StorageService>().getAllFne();
+    final currentUserId = Get.isRegistered<SupabaseService>() 
+        ? Get.find<SupabaseService>().currentUser?.id 
+        : null;
+
+    records.value = allRecords.where((r) {
+      if (currentUserId == null) {
+        // Mode hors ligne : voir uniquement les factures sans propriétaire (locales non connectées)
+        return r.userId == null;
+      } else {
+        // Connecté : voir les siennes + s'approprier visuellement les sans propriétaires
+        return r.userId == null || r.userId == currentUserId;
+      }
+    }).toList();
   }
 
   void scanNewInvoice() {
@@ -58,6 +72,13 @@ class HistoryController extends GetxController {
 
     await Get.find<StorageService>().deleteFne(id);
     records.removeWhere((r) => r.id == id);
+  }
+
+  void updateRecord(FneRecord record) {
+    Get.find<StorageService>().saveFne(record);
+    
+    // On rafraîchit toute la liste pour être sûr que l'isolation et les nouveaux éléments sont OK
+    loadRecords();
   }
 
   void retryRecord(FneRecord record) {
@@ -121,7 +142,20 @@ class HistoryController extends GetxController {
     }).toList();
   }
 
+  /// CA certifié des enregistrements filtrés (période + recherche).
+  double get filteredCertifiedCa =>
+      filteredRecordsByStatus(FneStatus.certifiee)
+          .fold(0.0, (s, r) => s + r.totalTTC);
+
   // ── Stats (réactives — à appeler dans Obx) ────────────────────────────────
+  double get caToday {
+    final now = DateTime.now();
+    return records
+        .where((r) =>
+            r.status == FneStatus.certifiee && _sameDay(r.createdAt, now))
+        .fold(0.0, (s, r) => s + r.totalTTC);
+  }
+
   double get caThisMonth {
     final now = DateTime.now();
     return records

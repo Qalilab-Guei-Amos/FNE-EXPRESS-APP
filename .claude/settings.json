@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(dart run:*)",
-      "WebFetch(domain:pub.dev)"
+      "WebFetch(domain:pub.dev)",
+      "Bash(./gradlew --stop)"
     ]
   }
 }

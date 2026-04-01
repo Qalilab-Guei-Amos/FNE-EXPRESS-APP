@@ -8,6 +8,7 @@ import 'package:toastification/toastification.dart';
 import '../controllers/acquisition_controller.dart';
 import '../controllers/validation_controller.dart';
 import '../views/validation/validation_screen.dart';
+import '../views/main_layout.dart';
 
 class ShareIntentService extends GetxService {
   late StreamSubscription<List<SharedFile>> _sub;
@@ -102,8 +103,9 @@ class ShareIntentService extends GetxService {
     final validCtrl = Get.put(ValidationController());
 
     // 2. Naviguer vers l'écran de validation
-    // On utilise offAll pour éviter d'empiler des extractions si l'utilisateur partage plusieurs fois
-    Get.offAll(() => const ValidationScreen());
+    // On s'assure que MainLayout est à la racine, puis on ouvre la validation par-dessus
+    Get.offAll(() => const MainLayout());
+    Get.to(() => const ValidationScreen());
 
     // 3. Lancer l'extraction avec un léger délai pour laisser l'UI s'installer (crucial pour le cold start)
     Future.delayed(const Duration(milliseconds: 300), () {
