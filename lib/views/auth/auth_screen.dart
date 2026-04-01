@@ -137,7 +137,7 @@ class _AuthScreenState extends State<AuthScreen> {
       child: Center(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
-          padding: EdgeInsets.symmetric(horizontal: R.hPad(context), vertical: 40),
+          padding: EdgeInsets.symmetric(horizontal: R.hPad(context), vertical: 20),
           child: Obx(() => ctrl.isAuthenticated 
               ? ProfileView(ctrl: ctrl, isTablet: false) 
               : AuthForm(ctrl: ctrl, isTablet: false)),

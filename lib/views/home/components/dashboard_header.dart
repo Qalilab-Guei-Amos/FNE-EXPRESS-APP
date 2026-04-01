@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../controllers/settings_controller.dart';
 import '../../../controllers/auth_controller.dart';
+import '../../../services/sync_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/responsive.dart';
 import '../../auth/auth_screen.dart';
@@ -27,6 +28,7 @@ class DashboardHeader extends StatelessWidget {
       title: Obx(() {
         final user = authCtrl.currentUser.value;
         final bool isLoggedIn = user != null;
+        final bool isSyncing = Get.isRegistered<SyncService>() ? Get.find<SyncService>().isSyncing.value : false;
 
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -55,7 +57,15 @@ class DashboardHeader extends StatelessWidget {
               ],
             ),
             GestureDetector(
-              onTap: () => Get.to(() => const AuthScreen()),
+              onTap: () {
+                if (isLoggedIn) {
+                  if (Get.isRegistered<SyncService>()) {
+                    Get.find<SyncService>().syncAll();
+                  }
+                } else {
+                  Get.to(() => const AuthScreen());
+                }
+              },
               child: Container(
                 padding: const EdgeInsets.all(9),
                 decoration: BoxDecoration(
@@ -67,11 +77,17 @@ class DashboardHeader extends StatelessWidget {
                       color: isLoggedIn ? Colors.white : Colors.white.withValues(alpha: 0.3),
                       width: isLoggedIn ? 1.5 : 1),
                 ),
-                child: Icon(
-                  isLoggedIn ? Icons.cloud_done_rounded : Icons.cloud_off_rounded,
-                  color: isLoggedIn ? Colors.white : Colors.white.withValues(alpha: 0.6), 
-                  size: 18
-                ),
+                child: isSyncing
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : Icon(
+                        isLoggedIn ? Icons.cloud_done_rounded : Icons.cloud_off_rounded,
+                        color: isLoggedIn ? Colors.white : Colors.white.withValues(alpha: 0.6), 
+                        size: 18
+                      ),
               ),
             ),
           ],

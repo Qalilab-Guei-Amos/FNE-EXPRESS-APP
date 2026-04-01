@@ -10,6 +10,7 @@ import 'auth/auth_screen.dart';
 import '../controllers/history_controller.dart';
 import '../models/fne_record.dart';
 import 'settings/components/logout_dialog.dart';
+import '../services/sync_service.dart';
 
 class MainLayoutController extends GetxController {
   final RxInt currentIndex = 0.obs;
@@ -92,8 +93,17 @@ class MainLayout extends StatelessWidget {
                 actions: [
                   Obx(() {
                     final isLoggedIn = authCtrl.currentUser.value != null;
+                    final bool isSyncing = Get.isRegistered<SyncService>() ? Get.find<SyncService>().isSyncing.value : false;
                     return InkWell(
-                      onTap: () => Get.to(() => const AuthScreen()),
+                      onTap: () {
+                        if (isLoggedIn) {
+                          if (Get.isRegistered<SyncService>()) {
+                            Get.find<SyncService>().syncAll();
+                          }
+                        } else {
+                          Get.to(() => const AuthScreen());
+                        }
+                      },
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
@@ -106,16 +116,24 @@ class MainLayout extends StatelessWidget {
                         ),
                         child: Row(
                           children: [
-                            Icon(
-                              isLoggedIn
-                                  ? Icons.cloud_done_rounded
-                                  : Icons.cloud_off_rounded,
-                              size: 16,
-                              color: Colors.white,
-                            ),
+                            isSyncing
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                  )
+                                : Icon(
+                                    isLoggedIn
+                                        ? Icons.cloud_done_rounded
+                                        : Icons.cloud_off_rounded,
+                                    size: 16,
+                                    color: Colors.white,
+                                  ),
                             const SizedBox(width: 8),
                             Text(
-                              isLoggedIn ? 'Synchronisé' : 'Hors ligne',
+                              isSyncing 
+                                  ? 'Synchro en cours...' 
+                                  : (isLoggedIn ? 'Synchronisé' : 'Hors ligne'),
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 12,
@@ -255,15 +273,18 @@ class MainLayout extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        children: [
-          const SizedBox(height: 30),
-          const Spacer(),
-          _sideDrawerItem('Tableau', Icons.dashboard_rounded, 0, controller),
-          _sideDrawerItem('Historique', Icons.history_rounded, 1, controller),
-          _sideDrawerItem('Paramètres', Icons.settings_rounded, 2, controller),
-          const Spacer(),
-          Obx(() {
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final itemsWidget = Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _sideDrawerItem('Tableau', Icons.dashboard_rounded, 0, controller),
+              _sideDrawerItem('Historique', Icons.history_rounded, 1, controller),
+              _sideDrawerItem('Paramètres', Icons.settings_rounded, 2, controller),
+            ],
+          );
+          
+          final logoutWidget = Obx(() {
             if (authCtrl.currentUser.value == null) {
               return const SizedBox.shrink();
             }
@@ -284,9 +305,32 @@ class MainLayout extends StatelessWidget {
                 ],
               ),
             );
-          }),
-          const SizedBox(height: 30),
-        ],
+          });
+          
+          if (constraints.maxHeight < 450) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Column(
+                children: [
+                  itemsWidget,
+                  const SizedBox(height: 32),
+                  logoutWidget,
+                ],
+              ),
+            );
+          }
+          
+          return Column(
+            children: [
+              const SizedBox(height: 30),
+              const Spacer(),
+              itemsWidget,
+              const Spacer(),
+              logoutWidget,
+              const SizedBox(height: 30),
+            ],
+          );
+        },
       ),
     );
   }

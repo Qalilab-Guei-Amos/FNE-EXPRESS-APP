@@ -58,7 +58,7 @@ class HomeScreen extends StatelessWidget {
                     StatsRow(historyCtrl: historyCtrl),
                     const SizedBox(height: 24),
                     const Text(
-                      'Mes 5 dernières activités',
+                      'Mes 5 dernières factures',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,

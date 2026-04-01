@@ -16,7 +16,6 @@ class AuthController extends GetxController {
 
   final emailCtrl = TextEditingController();
   final passwordCtrl = TextEditingController();
-  final displayNameCtrl = TextEditingController();
 
   bool get isAuthenticated => currentUser.value != null;
 
@@ -62,12 +61,11 @@ class AuthController extends GetxController {
   void resetForm() {
     emailCtrl.clear();
     passwordCtrl.clear();
-    displayNameCtrl.clear();
     isLoginMode.value = true;
   }
 
   Future<void> submit() async {
-    if (emailCtrl.text.isEmpty || passwordCtrl.text.isEmpty || (!isLoginMode.value && displayNameCtrl.text.isEmpty)) {
+    if (emailCtrl.text.isEmpty || passwordCtrl.text.isEmpty) {
       _showError('Veuillez remplir tous les champs');
       return;
     }
@@ -93,9 +91,8 @@ class AuthController extends GetxController {
         await _supabase.auth.signUp(
           email: emailCtrl.text.trim(),
           password: passwordCtrl.text,
-          data: {'display_name': displayNameCtrl.text.trim()},
         );
-        _showSuccess('Inscription réussie. Vous pouvez maintenant vous connecter.');
+        _showSuccess('Inscription réussie.\nUn lien de validation a été envoyé à votre adresse email. Veuillez valider votre email avant de vous connecter.');
         resetForm(); // Vide les champs explicitement après inscription réussie
         isLoginMode.value = true;
       }
@@ -160,7 +157,7 @@ class AuthController extends GetxController {
       description: Text(msg),
       type: ToastificationType.success,
       style: ToastificationStyle.flat,
-      autoCloseDuration: const Duration(seconds: 3),
+      autoCloseDuration: const Duration(seconds: 4),
     );
   }
 
@@ -168,7 +165,6 @@ class AuthController extends GetxController {
   void onClose() {
     emailCtrl.dispose();
     passwordCtrl.dispose();
-    displayNameCtrl.dispose();
     super.onClose();
   }
 }

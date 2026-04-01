@@ -44,13 +44,19 @@ L'application est conçue pour être partagée sans risque par plusieurs utilisa
 
 ---
 
-## 4. Restauration & Fusion Auto (Login Merge) 🔄
+## 4. Restauration, Fusion Auto & Réconciliation 🔄
 
-C'est ici que la magie de la continuité de service opère. À la connexion réussie, l'application lance une **Fusion Bi-directionnelle Silencieuse** :
+C'est ici que la magie de la continuité de service opère. À l'appui sur le bouton "**Synchroniser le Cloud**" (ou automatiquement à la connexion), l'application lance une **Synchronisation Bi-directionnelle Intelligente (`syncAll`)** :
 
-1. **Phase 1 (Cloud -> Téléphone) :** `restoreFromCloud()` télécharge tout votre historique distant pour le réinjecter dans le téléphone.
-2. **Phase 2 (Téléphone -> Cloud) :** `syncCertifiedRecords()` repère les factures que vous aviez faites en mode hors-ligne sans être connecté, et les envoie immédiatement au Cloud pour les mettre à l'abri sur votre compte.
-3. **Appropriation :** Ces factures locales orphelines reçoivent alors officiellement votre ID utilisateur en local.
+1. **Phase 1 (Envoi Cloud / Upload) :** L'application repère les factures certifiées que vous aviez faites en mode hors-ligne sans être connecté, et les envoie immédiatement au Cloud pour les sécuriser. Les factures locales orphelines reçoivent alors officiellement votre ID utilisateur en local.
+2. **Phase 2 (Récupération / Download) :** Elle télécharge tout votre historique distant pour l'injecter dans votre téléphone si de nouvelles factures sont présentes en ligne.
+3. **Phase 3 (Réconciliation des Fichiers - NOUVEAU) :** L'algorithme inspecte ligne par ligne les différences entre le Cloud et le téléphone :
+   - Si un fichier PDF ou Source manque en Local mais existe sur le Cloud, il est **téléchargé et sauvegardé** sur le stockage du téléphone.
+   - Si un fichier PDF ou Source manque sur le Cloud mais existe en Local, il est **téléversé silencieusement** pour réparer la base de données distante.
+
+**Expérience Utilisateur Unifiée :**
+- Un clic sur l'icône Nuage (Header, Dashboard ou Paramètres) lance `syncAll()` de manière transparente sans changer de page si l'utilisateur est connecté.
+- Un indicateur de chargement circulaire animé (`CircularProgressIndicator`) remplace dynamiquement l'icône de nuage pendant le traitement ("*Synchro en cours...*").
 
 ---
 
@@ -58,10 +64,10 @@ C'est ici que la magie de la continuité de service opère. À la connexion réu
 
 | Nom | Rôle |
 | :--- | :--- |
-| `SyncService` | Moteur de transfert (Upload/Restore). Supporte un mode `silent` pour les opérations automatiques de fusion. |
-| `AuthController` | Gère login/logout et les triggers de fusion automatique au démarrage. |
+| `SyncService` | Moteur bidirectionnel unique (`syncAll()`). Supporte un mode `silent`. Gère la réconciliation granulaire des PJs et PDF. |
+| `AuthController` | Gère login/logout et les appels transparents de `syncAll(silent: true)` à la connexion réussie. |
 | `HistoryController` | Gère le filtrage visuel basé sur la propriété des données (`userId`). |
-| `ValidationController` | Gère la certification et déclenche la synchro en arrière-plan. |
+| `ValidationController` | Gère la certification et déclenche la synchro basique (upload) en arrière-plan. |
 
 ---
 

@@ -22,8 +22,8 @@ class AuthForm extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         if (!isTablet) ...[
-          SizedBox(height: MediaQuery.of(context).padding.top),
-          const AuthLogo(size: 100),
+          // SizedBox(height: MediaQuery.of(context).padding.top),
+          const AuthLogo(size: 120),
           const SizedBox(height: 40),
         ],
         
@@ -67,19 +67,6 @@ class AuthForm extends StatelessWidget {
               )),
               const SizedBox(height: 32),
               
-              Obx(() => !ctrl.isLoginMode.value 
-                ? Column(
-                    children: [
-                      AuthTextField(
-                        controller: ctrl.displayNameCtrl,
-                        label: 'Nom de l\'entreprise',
-                        icon: Icons.person_outline_rounded,
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-                  )
-                : const SizedBox.shrink()),
-
               AuthTextField(
                 controller: ctrl.emailCtrl,
                 label: 'Adresse Email',
