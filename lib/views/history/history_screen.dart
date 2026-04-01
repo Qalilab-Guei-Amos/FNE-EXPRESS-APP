@@ -48,7 +48,7 @@ class HistoryScreen extends StatelessWidget {
           Padding(
             padding: EdgeInsets.fromLTRB(
               R.hPad(context),
-              12,
+              16,
               R.hPad(context),
               0,
             ),

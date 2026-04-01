@@ -51,10 +51,7 @@ class SettingsScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ── Header Profil ───────────────────
-              Obx(() {
-                if (!authCtrl.isAuthenticated) return const SizedBox.shrink();
-                return ProfileCard(authCtrl: authCtrl);
-              }),
+              ProfileCard(authCtrl: authCtrl),
 
               const SectionHeader(
                 title: 'IDENTITÉ DE L\'ÉTABLISSEMENT',

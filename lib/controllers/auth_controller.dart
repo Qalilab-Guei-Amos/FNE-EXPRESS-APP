@@ -59,6 +59,13 @@ class AuthController extends GetxController {
     isLoginMode.value = !isLoginMode.value;
   }
 
+  void resetForm() {
+    emailCtrl.clear();
+    passwordCtrl.clear();
+    displayNameCtrl.clear();
+    isLoginMode.value = true;
+  }
+
   Future<void> submit() async {
     if (emailCtrl.text.isEmpty || passwordCtrl.text.isEmpty || (!isLoginMode.value && displayNameCtrl.text.isEmpty)) {
       _showError('Veuillez remplir tous les champs');
@@ -77,11 +84,10 @@ class AuthController extends GetxController {
         // ── Fusion automatique Cloud <-> Local ──────────────
         if (Get.isRegistered<SyncService>()) {
           final sync = Get.find<SyncService>();
-          sync.restoreFromCloud(silent: true).then((_) {
-            sync.syncCertifiedRecords(silent: true);
-          });
+          sync.syncAll(silent: true);
         }
         
+        resetForm(); // Vide les champs explicitement après connexion réussie
         Get.back();
       } else {
         await _supabase.auth.signUp(
@@ -90,6 +96,7 @@ class AuthController extends GetxController {
           data: {'display_name': displayNameCtrl.text.trim()},
         );
         _showSuccess('Inscription réussie. Vous pouvez maintenant vous connecter.');
+        resetForm(); // Vide les champs explicitement après inscription réussie
         isLoginMode.value = true;
       }
     } on AuthException catch (e) {

@@ -3,7 +3,9 @@ import 'package:get/get.dart';
 import '../../../controllers/auth_controller.dart';
 import '../../../controllers/settings_controller.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../auth/auth_screen.dart';
 import 'change_password_dialog.dart';
+import 'logout_dialog.dart';
 
 class ProfileCard extends StatelessWidget {
   final AuthController authCtrl;
@@ -13,113 +15,130 @@ class ProfileCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final settingsCtrl = Get.find<SettingsController>();
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 32),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppTheme.primary,
-                  AppTheme.primary.withValues(alpha: 0.85),
+    return Obx(() {
+      final isLoggedIn = authCtrl.isAuthenticated;
+      
+      return Container(
+        margin: const EdgeInsets.only(bottom: 32),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: isLoggedIn
+                      ? [AppTheme.primary, AppTheme.primary.withValues(alpha: 0.85)]
+                      : [Colors.grey.shade700, Colors.grey.shade800],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(24),
+                ),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 24,
+                    backgroundColor: Colors.white.withValues(alpha: 0.15),
+                    child: Icon(
+                      isLoggedIn ? Icons.shield_outlined : Icons.cloud_off_rounded,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isLoggedIn ? authCtrl.displayName : 'Compte non connecté',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        Text(
+                          isLoggedIn 
+                              ? (authCtrl.currentUser.value?.email ?? 'Compte Certifié')
+                              : 'Synchronisation désactivée',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.75),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      if (isLoggedIn) {
+                        showLogoutDialog(context, authCtrl);
+                      } else {
+                        Get.to(() => const AuthScreen());
+                      }
+                    },
+                    icon: Icon(
+                      isLoggedIn ? Icons.logout_rounded : Icons.login_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
                 ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(24),
               ),
             ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 24,
-                  backgroundColor: Colors.white.withValues(alpha: 0.15),
-                  child: const Icon(
-                    Icons.shield_outlined,
-                    color: Colors.white,
-                    size: 28,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        authCtrl.displayName,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.5,
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: isLoggedIn 
+                      ? _profileAction(
+                          icon: Icons.key_rounded,
+                          label: 'Mot de passe',
+                          onTap: () => showChangePasswordDialog(context, authCtrl),
+                        )
+                      : _profileAction(
+                          icon: Icons.cloud_sync_rounded,
+                          label: 'Se connecter',
+                          onTap: () => Get.to(() => const AuthScreen()),
+                          active: true,
                         ),
-                      ),
-                      Text(
-                        authCtrl.currentUser.value?.email ??
-                            'Compte Certifié',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.75),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
                   ),
-                ),
-                IconButton(
-                  onPressed: () => authCtrl.signOut(),
-                  icon: const Icon(
-                    Icons.logout_rounded,
-                    color: Colors.white,
-                    size: 24,
+                  Container(width: 1, height: 24, color: Colors.grey.shade300),
+                  Expanded(
+                    child: Obx(() {
+                      final editing = settingsCtrl.isEditMode.value;
+                      return _profileAction(
+                        icon: editing ? Icons.lock_open_rounded : Icons.edit_rounded,
+                        label: editing ? 'Verrouiller' : 'Modifier',
+                        onTap: () => settingsCtrl.isEditMode.toggle(),
+                        active: editing,
+                      );
+                    }),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _profileAction(
-                    icon: Icons.key_rounded,
-                    label: 'Mot de passe',
-                    onTap: () => showChangePasswordDialog(context, authCtrl),
-                  ),
-                ),
-                Container(width: 1, height: 24, color: Colors.grey.shade300),
-                Expanded(
-                  child: Obx(() {
-                    final editing = settingsCtrl.isEditMode.value;
-                    return _profileAction(
-                      icon: editing ? Icons.lock_open_rounded : Icons.edit_rounded,
-                      label: editing ? 'Verrouiller' : 'Modifier',
-                      onTap: () => settingsCtrl.isEditMode.toggle(),
-                      active: editing,
-                    );
-                  }),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+          ],
+        ),
+      );
+    });
   }
 
   Widget _profileAction({

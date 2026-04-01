@@ -8,8 +8,21 @@ import 'components/auth_form.dart';
 import 'components/auth_logo.dart';
 import 'components/profile_view.dart';
 
-class AuthScreen extends StatelessWidget {
+class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
+
+  @override
+  State<AuthScreen> createState() => _AuthScreenState();
+}
+
+class _AuthScreenState extends State<AuthScreen> {
+  @override
+  void dispose() {
+    if (Get.isRegistered<AuthController>()) {
+      Get.find<AuthController>().resetForm();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

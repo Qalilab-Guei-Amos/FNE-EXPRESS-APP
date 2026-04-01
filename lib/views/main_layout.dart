@@ -9,6 +9,7 @@ import 'settings/settings_screen.dart';
 import 'auth/auth_screen.dart';
 import '../controllers/history_controller.dart';
 import '../models/fne_record.dart';
+import 'settings/components/logout_dialog.dart';
 
 class MainLayoutController extends GetxController {
   final RxInt currentIndex = 0.obs;
@@ -267,7 +268,7 @@ class MainLayout extends StatelessWidget {
               return const SizedBox.shrink();
             }
             return InkWell(
-              onTap: () => authCtrl.signOut(),
+              onTap: () => showLogoutDialog(context, authCtrl),
               child: const Column(
                 children: [
                   Icon(

@@ -11,6 +11,71 @@ class SyncService extends GetxService {
   final SupabaseService _supabase = Get.find<SupabaseService>();
   final RxBool isSyncing = false.obs;
 
+  Future<void> syncAll({bool silent = false}) async {
+    if (!_supabase.isAuthenticated) {
+      if (!silent) _showToast('Non connecté', 'Veuillez vous connecter pour synchroniser.', ToastificationType.warning);
+      return;
+    }
+    if (isSyncing.value) return;
+    
+    isSyncing.value = true;
+    try {
+      int uploaded = await _internalSyncUp();
+      int downloaded = await _internalSyncDown();
+      
+      if (!silent) {
+        if (uploaded > 0 || downloaded > 0) {
+          _showToast('Synchronisation réussie', 'Envoi: $uploaded, Réception: $downloaded factures.', ToastificationType.success);
+        } else {
+          _showToast('À jour', 'Vos données locales et Cloud sont parfaitement synchronisées.', ToastificationType.info);
+        }
+      }
+    } catch (e) {
+      if (!silent) _showToast('Erreur', 'La synchronisation a échoué.', ToastificationType.error);
+    } finally {
+      isSyncing.value = false;
+    }
+  }
+
+  Future<int> _internalSyncUp() async {
+    final historyCtrl = Get.find<HistoryController>();
+    final recordsToSync = historyCtrl.records.where((r) => r.status == FneStatus.certifiee && !r.isSynced).toList();
+    int count = 0;
+    if (recordsToSync.isNotEmpty) {
+      final userId = _supabase.currentUser!.id;
+      for (var record in recordsToSync) {
+        try {
+          await _uploadRecord(record);
+          historyCtrl.updateRecord(record.copyWith(isSynced: true, userId: userId));
+          count++;
+        } catch (e) {
+          debugPrint('Erreur upload ${record.id}: $e');
+        }
+      }
+    }
+    return count;
+  }
+
+  Future<int> _internalSyncDown() async {
+    final historyCtrl = Get.find<HistoryController>();
+    final userId = _supabase.currentUser!.id;
+    final List<dynamic> response = await _supabase.client
+        .from('fne_records')
+        .select()
+        .eq('user_id', userId);
+
+    int count = 0;
+    for (var row in response) {
+      final String id = row['id'];
+      if (historyCtrl.records.every((r) => r.id != id)) {
+        final record = FneRecord.fromJson(row).copyWith(isSynced: true);
+        historyCtrl.updateRecord(record);
+        count++;
+      }
+    }
+    return count;
+  }
+
   Future<void> syncCertifiedRecords({bool silent = false}) async {
     if (!_supabase.isAuthenticated) {
       if (!silent) _showToast('Non connecté', 'Veuillez vous connecter pour synchroniser.', ToastificationType.warning);

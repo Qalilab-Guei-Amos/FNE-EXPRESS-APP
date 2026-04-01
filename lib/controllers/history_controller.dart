@@ -212,6 +212,12 @@ class HistoryController extends GetxController {
   int get countBrouillon =>
       records.where((r) => r.status == FneStatus.brouillon).length;
 
+  List<FneRecord> get latest5Records {
+    final sorted = List<FneRecord>.from(records)
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return sorted.take(5).toList();
+  }
+
   /// CA certifié par jour sur les 7 derniers jours (index 0 = il y a 6 jours).
   List<double> get activityLast7Days {
     final now = DateTime.now();

@@ -73,19 +73,11 @@ class ProfileView extends StatelessWidget {
                 return Column(
                   children: [
                     ProfileActionButton(
-                      label: syncService.isSyncing.value ? 'Envoi...' : 'Synchroniser le Cloud',
-                      icon: syncService.isSyncing.value ? null : Icons.sync_rounded,
-                      onPressed: syncService.isSyncing.value ? null : syncService.syncCertifiedRecords,
+                      label: syncService.isSyncing.value ? 'Synchronisation...' : 'Synchroniser le Cloud',
+                      icon: syncService.isSyncing.value ? null : Icons.cloud_sync_rounded,
+                      onPressed: syncService.isSyncing.value ? null : syncService.syncAll,
                       isLoading: syncService.isSyncing.value,
                       primary: true,
-                    ),
-                    const SizedBox(height: 16),
-                    ProfileActionButton(
-                      label: 'Restaurer mon historique',
-                      icon: Icons.download_for_offline_rounded,
-                      onPressed: syncService.isSyncing.value ? null : syncService.restoreFromCloud,
-                      isLoading: false,
-                      primary: false,
                     ),
                   ],
                 );
