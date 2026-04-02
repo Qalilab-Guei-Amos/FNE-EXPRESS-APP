@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../services/storage_service.dart';
-import '../home/home_screen.dart';
+import '../main_layout.dart';
 import 'components/mobile_layout.dart';
 import 'components/tablet_layout.dart';
 
@@ -36,8 +36,10 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     );
 
     _heroFade = CurvedAnimation(parent: _heroCtrl, curve: Curves.easeOut);
-    _heroScale = Tween<double>(begin: 0.82, end: 1.0)
-        .animate(CurvedAnimation(parent: _heroCtrl, curve: Curves.easeOutBack));
+    _heroScale = Tween<double>(
+      begin: 0.82,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _heroCtrl, curve: Curves.easeOutBack));
 
     _contentFade = CurvedAnimation(parent: _contentCtrl, curve: Curves.easeOut);
     _contentSlide = Tween<Offset>(
@@ -58,7 +60,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   void _goHome() {
     Get.find<StorageService>().setHasSeenWelcome();
     Get.off(
-      () => const HomeScreen(),
+      () => const MainLayout(),
       transition: Transition.fadeIn,
       duration: const Duration(milliseconds: 400),
     );

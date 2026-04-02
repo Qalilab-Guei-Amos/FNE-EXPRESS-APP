@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:toastification/toastification.dart';
 import '../models/fne_record.dart';
 import '../services/storage_service.dart';
+import '../services/supabase_service.dart';
 import '../views/acquisition/acquisition_screen.dart';
 import '../views/validation/validation_screen.dart';
 import 'validation_controller.dart';
@@ -34,7 +36,20 @@ class HistoryController extends GetxController {
   }
 
   void loadRecords() {
-    records.value = Get.find<StorageService>().getAllFne();
+    final allRecords = Get.find<StorageService>().getAllFne();
+    final currentUserId = Get.isRegistered<SupabaseService>() 
+        ? Get.find<SupabaseService>().currentUser?.id 
+        : null;
+
+    records.value = allRecords.where((r) {
+      if (currentUserId == null) {
+        // Mode hors ligne : voir uniquement les factures sans propriétaire (locales non connectées)
+        return r.userId == null;
+      } else {
+        // Connecté : voir les siennes + s'approprier visuellement les sans propriétaires
+        return r.userId == null || r.userId == currentUserId;
+      }
+    }).toList();
   }
 
   void scanNewInvoice() {
@@ -58,6 +73,13 @@ class HistoryController extends GetxController {
 
     await Get.find<StorageService>().deleteFne(id);
     records.removeWhere((r) => r.id == id);
+  }
+
+  void updateRecord(FneRecord record) {
+    Get.find<StorageService>().saveFne(record);
+    
+    // On rafraîchit toute la liste pour être sûr que l'isolation et les nouveaux éléments sont OK
+    loadRecords();
   }
 
   void retryRecord(FneRecord record) {
@@ -121,7 +143,45 @@ class HistoryController extends GetxController {
     }).toList();
   }
 
+  String get currentPeriodLabel {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final fmt = DateFormat('dd/MM/yyyy');
+
+    switch (filterPeriod.value) {
+      case 'today': 
+        return 'Le ${fmt.format(now)}';
+      case 'week': 
+        final weekStart = today.subtract(Duration(days: today.weekday - 1));
+        return 'Du ${fmt.format(weekStart)} au ${fmt.format(now)}';
+      case 'month': 
+        final monthStart = DateTime(now.year, now.month, 1);
+        return 'Du ${fmt.format(monthStart)} au ${fmt.format(now)}';
+      case 'custom':
+        if (customStart.value != null && customEnd.value != null) {
+          final s = fmt.format(customStart.value!);
+          final e = fmt.format(customEnd.value!);
+          return 'Du $s au $e';
+        }
+        return 'Période personnalisée';
+      default: return 'Toutes les factures certifiées';
+    }
+  }
+
+  /// CA certifié des enregistrements filtrés (période + recherche).
+  double get filteredCertifiedCa =>
+      filteredRecordsByStatus(FneStatus.certifiee)
+          .fold(0.0, (s, r) => s + r.totalTTC);
+
   // ── Stats (réactives — à appeler dans Obx) ────────────────────────────────
+  double get caToday {
+    final now = DateTime.now();
+    return records
+        .where((r) =>
+            r.status == FneStatus.certifiee && _sameDay(r.createdAt, now))
+        .fold(0.0, (s, r) => s + r.totalTTC);
+  }
+
   double get caThisMonth {
     final now = DateTime.now();
     return records
@@ -151,6 +211,12 @@ class HistoryController extends GetxController {
 
   int get countBrouillon =>
       records.where((r) => r.status == FneStatus.brouillon).length;
+
+  List<FneRecord> get latest5Records {
+    final sorted = List<FneRecord>.from(records)
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return sorted.take(5).toList();
+  }
 
   /// CA certifié par jour sur les 7 derniers jours (index 0 = il y a 6 jours).
   List<double> get activityLast7Days {

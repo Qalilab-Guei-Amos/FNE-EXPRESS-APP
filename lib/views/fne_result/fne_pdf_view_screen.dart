@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pdfx/pdfx.dart';
 import 'package:share_plus/share_plus.dart';
+import '../main_layout.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/responsive.dart';
-import '../home/home_screen.dart';
 
 class FnePdfViewScreen extends StatefulWidget {
   final String path;
@@ -30,9 +30,7 @@ class _FnePdfViewScreenState extends State<FnePdfViewScreen> {
   @override
   void initState() {
     super.initState();
-    _pdfCtrl = PdfControllerPinch(
-      document: PdfDocument.openFile(widget.path),
-    );
+    _pdfCtrl = PdfControllerPinch(document: PdfDocument.openFile(widget.path));
   }
 
   @override
@@ -45,7 +43,7 @@ class _FnePdfViewScreenState extends State<FnePdfViewScreen> {
     if (widget.fromHistory) {
       Get.back();
     } else {
-      Get.offAll(() => const HomeScreen());
+      Get.offAll(() => const MainLayout());
     }
   }
 
@@ -61,16 +59,17 @@ class _FnePdfViewScreenState extends State<FnePdfViewScreen> {
             icon: const Icon(Icons.arrow_back),
             onPressed: _goHome,
           ),
-          title: Text(widget.title,
-              style: TextStyle(fontSize: R.fs(context, 16))),
+          title: Text(
+            widget.title,
+            style: TextStyle(fontSize: R.fs(context, 16)),
+          ),
           actions: [
             IconButton(
               icon: Icon(Icons.share_rounded, size: R.icon(context, 22)),
               tooltip: 'Partager',
-              onPressed: () => Share.shareXFiles(
-                [XFile(widget.path)],
-                subject: 'Facture FNE',
-              ),
+              onPressed: () => Share.shareXFiles([
+                XFile(widget.path),
+              ], subject: 'Facture FNE'),
             ),
             SizedBox(width: R.hPad(context) - 16),
           ],
@@ -84,8 +83,7 @@ class _FnePdfViewScreenState extends State<FnePdfViewScreen> {
                   controller: _pdfCtrl,
                   onDocumentLoaded: (doc) =>
                       setState(() => _totalPages = doc.pagesCount),
-                  onPageChanged: (page) =>
-                      setState(() => _currentPage = page),
+                  onPageChanged: (page) => setState(() => _currentPage = page),
                   builders: PdfViewPinchBuilders<DefaultBuilderOptions>(
                     options: const DefaultBuilderOptions(),
                     documentLoaderBuilder: (_) => const Center(

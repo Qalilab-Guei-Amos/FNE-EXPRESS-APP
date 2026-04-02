@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:toastification/toastification.dart';
 import '../../../controllers/history_controller.dart';
 import '../../../core/utils/responsive.dart';
 import '../../../models/fne_record.dart';
@@ -65,7 +66,12 @@ void openRecord(FneRecord record, HistoryController ctrl) {
   if (record.qrCode != null && record.qrCode!.isNotEmpty) {
     Get.to(() => FneWebViewScreen(url: record.qrCode!, recordId: record.id));
   } else {
-    Get.snackbar('Indisponible', 'Aucun lien de vérification pour cette FNE',
-        snackPosition: SnackPosition.BOTTOM);
+    toastification.show(
+      title: const Text('Indisponible'),
+      description: const Text('Aucun lien de vérification pour cette FNE 📑'),
+      type: ToastificationType.warning,
+      style: ToastificationStyle.flat,
+      autoCloseDuration: const Duration(seconds: 4),
+    );
   }
 }

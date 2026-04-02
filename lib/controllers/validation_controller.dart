@@ -8,6 +8,8 @@ import '../models/invoice_item.dart';
 import '../services/gemini_service.dart';
 import '../services/fne_api_service.dart';
 import '../services/storage_service.dart';
+import '../services/sync_service.dart';
+import '../services/supabase_service.dart';
 import 'history_controller.dart';
 
 enum ValidationState { idle, extracting, reviewing, submitting, success, error }
@@ -182,6 +184,7 @@ class ValidationController extends GetxController {
     if (_currentDraftId == null) return;
     final draft = FneRecord(
       id: _currentDraftId!,
+      userId: null,
       createdAt: DateTime.now(),
       clientName: inv.clientName?.trim().isNotEmpty == true
           ? inv.clientName!
@@ -430,11 +433,13 @@ class ValidationController extends GetxController {
     if (result.success) {
       final record = FneRecord(
         id: draftId,
+        userId: Get.isRegistered<SupabaseService>() ? Get.find<SupabaseService>().currentUser?.id : null,
         createdAt: DateTime.now(),
         clientName: inv.clientName ?? 'Client inconnu',
         totalTTC: inv.totalTTC,
         fneNumber: result.fneNumber,
         qrCode: result.qrCode,
+        sourcePath: _lastFile?.path,
         invoice: inv,
         status: FneStatus.certifiee,
       );
@@ -442,12 +447,20 @@ class ValidationController extends GetxController {
       _refreshHistory();
       generatedFne.value = record;
       state.value = ValidationState.success;
+
+      // ── Synchronisation Cloud en arrière-plan (silencieuse) ──────────────
+      // On ne bloque pas l'interface, on laisse la certification s'afficher
+      // pendant que la synchro part discrètement vers Supabase.
+      if (Get.isRegistered<SyncService>()) {
+        Get.find<SyncService>().syncSingleRecord(record);
+      }
     } else {
       // Mettre à jour le brouillon en statut "échec" avec les données du formulaire
       final storage = Get.find<StorageService>();
       final existing = storage.getFneById(draftId);
       final echecRecord = (existing ?? FneRecord(
         id: draftId,
+        userId: null,
         createdAt: DateTime.now(),
         clientName: inv.clientName ?? 'Client inconnu',
         totalTTC: inv.totalTTC,

@@ -14,7 +14,11 @@ import 'services/fne_api_service.dart';
 import 'services/share_intent_service.dart';
 import 'services/export_service.dart';
 import 'views/welcome/welcome_screen.dart';
-import 'views/home/home_screen.dart';
+import 'views/main_layout.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'services/supabase_service.dart';
+import 'services/sync_service.dart';
+import 'controllers/auth_controller.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,15 +26,26 @@ void main() async {
   // Variables d'environnement
   await dotenv.load(fileName: '.env');
 
+  // Initialisation Supabase
+  await Supabase.initialize(
+    url: dotenv.env['SUPABASE_URL'] ?? '',
+    anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
+  );
+
   // Hive
   await Hive.initFlutter();
 
   // Enregistrement des services GetX (permanents pour toute la durée de l'app)
-  final storage = await Get.putAsync<StorageService>(() => StorageService().init());
+  final storage = await Get.putAsync<StorageService>(
+    () => StorageService().init(),
+  );
   Get.put<GeminiService>(GeminiService());
   Get.put<FneApiService>(FneApiService());
   Get.put<ShareIntentService>(ShareIntentService());
   Get.put<ExportService>(ExportService());
+  Get.put<SupabaseService>(SupabaseService());
+  Get.put<SyncService>(SyncService());
+  Get.put<AuthController>(AuthController());
 
   await initializeDateFormatting('fr_FR', null);
 
@@ -63,7 +78,7 @@ class FneExpressApp extends StatelessWidget {
           ],
           supportedLocales: const [Locale('fr', 'FR')],
           theme: AppTheme.lightTheme,
-          home: showWelcome ? const WelcomeScreen() : const HomeScreen(),
+          home: showWelcome ? const WelcomeScreen() : const MainLayout(),
         ),
       ),
     );
